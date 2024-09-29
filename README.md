@@ -15,3 +15,6 @@ Get all stocks:
 
 Get a specific stock by ID:
 `curl -v localhost:8080/stocks/<id_num>`
+
+Post a new stock record:
+`curl -X POST localhost:8080/stocks -H 'Content-type:application/json' -d '{"ticker": <ticker-symbol>, "price": <price>}'`
