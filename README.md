@@ -1,6 +1,9 @@
 To run the app, open the terminal and type these commands:
 
+cd into the nonrest directory:
 `cd tut-rest/nonrest`
+
+Build the code using maven:
 `mvn clean spring-boot:run`
 
 This runs the app at `https://localhost:8080`.
