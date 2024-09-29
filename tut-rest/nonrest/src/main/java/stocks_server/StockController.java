@@ -1,5 +1,6 @@
 package stock_server;
 
+import java.util.Date;
 import java.util.List;
 
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -19,7 +20,6 @@ class StockController {
     this.repository = repository;
   }
 
-
   // Aggregate root
   // tag::get-aggregate-root[]
   @GetMapping("/stocks")
@@ -30,7 +30,16 @@ class StockController {
 
   @PostMapping("/stocks")
   Stock newStock(@RequestBody Stock newStock) {
-    return repository.save(newStock);
+    Date newDate = new Date();
+
+    Stock newStockWithDate = new Stock();
+
+    newStockWithDate.setId(newStock.getId());
+    newStockWithDate.setTicker(newStock.getTicker());
+    newStockWithDate.setPrice(newStock.getPrice());
+    newStockWithDate.setDate(newDate);
+    
+    return repository.save(newStockWithDate);
   }
 
   // Single item
@@ -44,12 +53,13 @@ class StockController {
 
   @PutMapping("/stocks/{ticker}")
   Stock replaceStock(@RequestBody Stock newStock, @PathVariable String ticker) {
-    
+    Date newDate = new Date();
+
     return repository.findById(ticker)
       .map(stock -> {
         stock.setId(newStock.getId());//id or ticker?
         stock.setPrice(newStock.getPrice());
-        stock.setDate(newStock.getDate());
+        stock.setDate(newDate);
         return repository.save(stock);
       })
       .orElseGet(() -> {
