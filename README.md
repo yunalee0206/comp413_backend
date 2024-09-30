@@ -8,6 +8,8 @@ Build the code using maven:
 
 This runs the app at `https://localhost:8080`.
 
+You can see the frontend for the API at http://localhost:8080/swagger-ui/index.html.
+
 From a separate terminal, make curl commands to call the API:
 
 Get all stocks:
