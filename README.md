@@ -1,14 +1,14 @@
 To run the app, open the terminal and type these commands:
 
-cd into the nonrest directory:
-`cd tut-rest/nonrest`
+cd into the backend directory:
+`cd backend`
 
 Build the code using maven:
 `mvn clean spring-boot:run`
 
 This runs the app at `https://localhost:8080`.
 
-You can see the frontend for the API at http://localhost:8080/swagger-ui/index.html.
+You can see the frontend for the API at http://localhost:8080/swagger-ui/index.html
 
 From a separate terminal, make curl commands to call the API:
 
