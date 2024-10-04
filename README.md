@@ -22,3 +22,5 @@ Get a specific stock by ID:
 
 Post a new stock record:
 `curl -X POST localhost:8080/stocks -H 'Content-type:application/json' -d '{"ticker": <ticker-symbol>, "price": <price>}'`
+
+.
