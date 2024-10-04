@@ -1,3 +1,5 @@
+# COMP 413 Backend
+
 To run the app, open the terminal and type these commands:
 
 cd into the backend directory:
