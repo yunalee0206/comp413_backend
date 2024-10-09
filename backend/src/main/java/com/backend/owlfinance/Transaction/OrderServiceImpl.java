@@ -1,7 +1,7 @@
-package main.java.com.backend.owlfinance.Transaction;
+package com.backend.owlfinance.Transaction;
 
-import com.example.tradeengine.model.Order;
-import com.example.tradeengine.repository.OrderRepository;
+import com.backend.owlfinance.Transaction.Order;
+import com.backend.owlfinance.Transaction.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

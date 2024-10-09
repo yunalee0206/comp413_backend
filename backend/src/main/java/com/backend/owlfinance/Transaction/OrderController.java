@@ -1,4 +1,4 @@
-package main.java.com.backend.owlfinance.Transaction;
+package com.backend.owlfinance.Transaction;
 
 import com.backend.owlfinance.Transaction.Order;
 import com.backend.owlfinance.Transaction.OrderService;
