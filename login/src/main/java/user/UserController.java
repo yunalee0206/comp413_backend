@@ -3,6 +3,7 @@ package user;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -38,9 +39,15 @@ public class UserController {
     }
 
     // DELETE user by username
+    @Transactional
     @DeleteMapping("/users/{username}")
     public void deleteUser(@PathVariable String username) {
-        userRepository.deleteByUsername(username);
+        Optional<User> user = userRepository.findByUsername(username);
+        if (user.isPresent()) {
+            userRepository.deleteByUsername(username);
+        } else {
+            throw new UserNotFoundException("User not found with username: " + username);
+        }
     }
 
 }
