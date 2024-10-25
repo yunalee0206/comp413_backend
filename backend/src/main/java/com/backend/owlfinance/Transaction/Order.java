@@ -5,6 +5,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import java.util.Date;
 
 
 @Entity
@@ -17,6 +18,8 @@ public class Order {
     private int quantity;
     private double price;
     private String type;
+    private Date timestamp;
+
 
     public Long getId() {
         return id;
@@ -57,4 +60,13 @@ public class Order {
     public void setType(String type) {
         this.type = type;
     }
+
+    public Date getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Date timestamp) {
+        this.timestamp = timestamp;
+    }
+
 }

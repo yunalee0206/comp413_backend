@@ -9,12 +9,18 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private OrderRepository orderRepository;
 
+    @Autowired
+    private OrderBookManager orderBookManager;
+
     @Override
     public Order placeOrder(String type, Order order) {
         order.setType(type);
-        return orderRepository.save(order);
+        Order o = orderRepository.save(order);
+        orderBookManager.addOrder(o);
+        return o;
     }
 
+    // TODO: Update order in order book manager
     @Override
     public Order updateOrder(Long orderId, Order order) {
         Order existingOrder = orderRepository.findById(orderId)
