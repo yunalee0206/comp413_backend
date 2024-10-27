@@ -19,7 +19,7 @@ public class OrderController {
         return ResponseEntity.ok(placedOrder);
     }
 
-    @PatchMapping("/{orderId}")
+    @PutMapping("/{orderId}")
     public ResponseEntity<Order> updateOrder(@PathVariable Long orderId, @RequestBody Order order) {
         Order updatedOrder = orderService.updateOrder(orderId, order);
         return ResponseEntity.ok(updatedOrder);

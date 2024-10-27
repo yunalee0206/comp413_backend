@@ -2,38 +2,35 @@ package com.backend.owlfinance.Transaction;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class OrderServiceImpl implements OrderService {
 
     @Autowired
-    private OrderRepository orderRepository;
-
-    @Autowired
-    private OrderBookManager orderBookManager;
+    private OrderOperation orderOp;
+    private final ConcurrentHashMap<String, OrderBook> orderBooks = new ConcurrentHashMap<>();
 
     @Override
     public Order placeOrder(String type, Order order) {
         order.setType(type);
-        Order o = orderRepository.save(order);
-        orderBookManager.addOrder(o);
-        return o;
+        OrderBook orderBook = orderBooks.computeIfAbsent(order.getSymbol(), s -> new OrderBook(this.orderOp));
+        return orderBook.addOrder(order);
     }
 
-    // TODO: Update order in order book manager
     @Override
     public Order updateOrder(Long orderId, Order order) {
-        Order existingOrder = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
-        
-        // Update the existing order with new values
-        existingOrder.setSymbol(order.getSymbol());
-        existingOrder.setQuantity(order.getQuantity());
-        existingOrder.setPrice(order.getPrice());
-        
-        return orderRepository.save(existingOrder);
+        OrderBook orderBook = orderBooks.get(order.getSymbol());
+        if (orderBook != null) {
+            return orderBook.updateOrder(orderId, order);
+        }
+        return null;
     }
 
     @Override
-    public void matchOrders() {}
+    public void matchOrders() {
+        for (OrderBook o: orderBooks.values()) {
+            o.matchOrders();
+        }
+    }
 }
