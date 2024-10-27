@@ -9,6 +9,10 @@ import java.util.List;
 import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
 import user.User;
+import user.UserWithToken;
+import user.JwtUtil;
+import user.UserResponse;
+import java.util.stream.Collectors;
 
 @RestController
 public class UserController {
@@ -19,25 +23,52 @@ public class UserController {
     @Autowired
     private JwtUtil jwtUtil;
 
-    // GET all users
-    @GetMapping("/users")
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    private String getTokenFromRequest(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7); // Remove "Bearer " prefix
+        }
+        return null; // Or throw an exception if needed
     }
+
+
+    // GET all users with their JWT tokens
+    @GetMapping("/users")
+    public List<UserWithToken> getAllUsersWithTokens() {
+        // Get all users and generate tokens for each
+        return userRepository.findAll().stream()
+                .map(user -> new UserWithToken(user.getId(), user.getUsername(), jwtUtil.generateToken(user.getUsername())))
+                .collect(Collectors.toList());
+    }
+
 
     // GET single user by username
     @GetMapping("/users/{username}")
-    public ResponseEntity<User> getUserByUsername(@PathVariable String username) {
+    public ResponseEntity<UserResponse> getUserByUsername(@PathVariable String username) {
         Optional<User> user = userRepository.findByUsername(username);
-        return user.map(ResponseEntity::ok)
-                .orElseThrow(() -> new UserNotFoundException(username));
+
+        return user.map(u -> {
+            // Create a UserResponse object with user details and the token
+            UserResponse userResponse = new UserResponse(u.getId(), u.getUsername(), jwtUtil.generateToken(username));
+            return ResponseEntity.ok(userResponse);
+        }).orElseThrow(() -> new UserNotFoundException(username));
     }
 
-    // POST new user
+    // POST new user with JWT generation
     @PostMapping("/users")
-    public User createUser(@RequestBody User newUser) {
-        return userRepository.save(newUser);
+    public ResponseEntity<UserResponse> createUser(@RequestBody User newUser) {
+        User savedUser = userRepository.save(newUser);
+
+        // Generate JWT token for the new user
+        String token = jwtUtil.generateToken(savedUser.getUsername());
+
+        // Create response object
+        UserResponse response = new UserResponse(savedUser.getId(), savedUser.getUsername(), token);
+
+        // Return the response with user details and JWT token
+        return ResponseEntity.ok(response);
     }
+
 
     // DELETE user by username
     @Transactional
