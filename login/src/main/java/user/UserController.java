@@ -37,7 +37,7 @@ public class UserController {
     public List<UserWithToken> getAllUsersWithTokens() {
         // Get all users and generate tokens for each
         return userRepository.findAll().stream()
-                .map(user -> new UserWithToken(user.getId(), user.getUsername(), jwtUtil.generateToken(user.getUsername())))
+                .map(user -> new UserWithToken(user.getId(), user.getUsername(), user.getToken()))
                 .collect(Collectors.toList());
     }
 
@@ -45,25 +45,27 @@ public class UserController {
     // GET single user by username
     @GetMapping("/users/{username}")
     public ResponseEntity<UserResponse> getUserByUsername(@PathVariable String username) {
-        Optional<User> user = userRepository.findByUsername(username);
+        Optional<UserWithToken> user = userRepository.findByUsername(username);
 
         return user.map(u -> {
             // Create a UserResponse object with user details and the token
-            UserResponse userResponse = new UserResponse(u.getId(), u.getUsername(), jwtUtil.generateToken(username));
+            UserResponse userResponse = new UserResponse(u.getId(), u.getUsername(), u.getToken());
             return ResponseEntity.ok(userResponse);
         }).orElseThrow(() -> new UserNotFoundException(username));
     }
 
     // POST new user with JWT generation
     @PostMapping("/users")
-    public ResponseEntity<UserResponse> createUser(@RequestBody User newUser) {
-        User savedUser = userRepository.save(newUser);
+    public ResponseEntity<UserResponse> createUser(@RequestBody UserWithToken newUser) {
+        UserWithToken savedUser = userRepository.save(newUser);
 
         // Generate JWT token for the new user
         String token = jwtUtil.generateToken(savedUser.getUsername());
+        savedUser.setToken(token);
+        userRepository.save(savedUser);
 
         // Create response object
-        UserResponse response = new UserResponse(savedUser.getId(), savedUser.getUsername(), token);
+        UserResponse response = new UserResponse(savedUser.getId(), savedUser.getUsername(), savedUser.getToken());
 
         // Return the response with user details and JWT token
         return ResponseEntity.ok(response);
@@ -74,7 +76,7 @@ public class UserController {
     @Transactional
     @DeleteMapping("/users/{username}")
     public void deleteUser(@PathVariable String username) {
-        Optional<User> user = userRepository.findByUsername(username);
+        Optional<UserWithToken> user = userRepository.findByUsername(username);
         if (user.isPresent()) {
             userRepository.deleteByUsername(username);
         } else {
