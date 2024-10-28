@@ -23,6 +23,8 @@ Get a specific stock by ID:
 Post a new stock record:
 `curl -X POST localhost:8080/stocks -H 'Content-type:application/json' -d '{"ticker": <ticker-symbol>, "price": <price>}'`
 
+Place an buy/sell order: 
+Note: Order type is specified in the url and others in the request body  
 curl -X POST "http://localhost:8080/orders?type=buy" -H 'Content-Type: application/json' -d '{"symbol": "AAPL", "quantity": 100, "price": 100.00, "timestamp": "2023-06-15T10:30:00Z"}'
 
 curl -X POST "http://localhost:8080/orders?type=sell" -H 'Content-Type: application/json' -d '{"symbol": "AAPL", "quantity": 50, "price": 80.00, "timestamp": "2023-06-16T10:30:00Z"}'
@@ -30,3 +32,4 @@ curl -X POST "http://localhost:8080/orders?type=sell" -H 'Content-Type: applicat
 curl -X POST "http://localhost:8080/orders?type=sell" -H 'Content-Type: application/json' -d '{"symbol": "AAPL", "quantity": 50, "price": 120.00, "timestamp": "2023-06-16T10:30:00Z"}'
 
 curl -X POST "http://localhost:8080/orders?type=sell" -H 'Content-Type: application/json' -d '{"symbol": "ABCD", "quantity": 100, "price": 100.00, "timestamp": "2023-06-15T10:30:00Z"}'
+
