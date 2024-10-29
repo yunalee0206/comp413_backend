@@ -1,4 +1,4 @@
-package com.backend.owlfinance;
+package com.backend.owlfinance.Portfolio;
 
 import jakarta.persistence.*;
 import java.util.HashMap;

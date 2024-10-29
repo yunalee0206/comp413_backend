@@ -1,4 +1,4 @@
-package com.backend.owlfinance;
+package com.backend.owlfinance.Portfolio;
 
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;

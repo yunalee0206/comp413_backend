@@ -1,4 +1,4 @@
-package com.backend.owlfinance;
+package com.backend.owlfinance.Portfolio;
 
 class InsufficientFundsException extends RuntimeException {
   InsufficientFundsException() {
