@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Entity
-class Portfolio {
+public class Portfolio {
 
   private @Id @GeneratedValue Long id;
   private Double balance;
@@ -18,7 +18,7 @@ class Portfolio {
 
   private Long userId;
 
-  Portfolio() {
+  public Portfolio() {
     this.balance = 0.0;
     this.stocks = new HashMap<>();
   }

@@ -2,6 +2,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 import java.util.HashMap;
 import java.util.Map;
+import com.backend.owlfinance.Portfolio.Portfolio;
 
 public class PortfolioTest {
 

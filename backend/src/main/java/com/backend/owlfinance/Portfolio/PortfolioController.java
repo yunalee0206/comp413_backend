@@ -4,15 +4,12 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 
-import com.backend.owlfinance.exception.InvalidAmountException;
-import com.backend.owlfinance.exception.InsufficientFundsException;
-import com.backend.owlfinance.exception.PortfolioNotFoundException;
 import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/portfolios")
-class PortfolioController {
+public class PortfolioController {
 
   private final PortfolioRepository repository;
 
@@ -47,13 +44,10 @@ class PortfolioController {
   }
 
   @PostMapping("/{userId}/deposit")
-  ResponseEntity<Portfolio> deposit(@PathVariable Long userId, @RequestBody Double amount) {
-    // Example JSON body:
-    // {
-    //   "amount": 1000.00
-    // }
-    if (amount <= 0) {
-      throw new InvalidAmountException("Deposit amount must be positive");
+  ResponseEntity<Portfolio> deposit(@PathVariable Long userId, @RequestBody AmountRequest request) {
+    Double amount = request.getAmount();
+    if (amount == null || amount <= 0) {
+        throw new InvalidAmountException("Deposit amount must be positive");
     }
     Portfolio portfolio = repository.findByUserId(userId)
         .orElseThrow(() -> new PortfolioNotFoundException(userId));
@@ -62,20 +56,17 @@ class PortfolioController {
   }
 
   @PostMapping("/{userId}/withdraw")
-  ResponseEntity<Portfolio> withdraw(@PathVariable Long userId, @RequestBody Double amount) {
-    // Example JSON body:
-    // {
-    //   "amount": 500.00
-    // }
-    if (amount <= 0) {
-      throw new InvalidAmountException("Withdrawal amount must be positive");
+  ResponseEntity<Portfolio> withdraw(@PathVariable Long userId, @RequestBody AmountRequest request) {
+    Double amount = request.getAmount();
+    if (amount == null || amount <= 0) {
+        throw new InvalidAmountException("Withdrawal amount must be positive");
     }
     Portfolio portfolio = repository.findByUserId(userId)
         .orElseThrow(() -> new PortfolioNotFoundException(userId));
     if (portfolio.getBalance() >= amount) {
-      portfolio.setBalance(portfolio.getBalance() - amount);
+        portfolio.setBalance(portfolio.getBalance() - amount);
     } else {
-      throw new InsufficientFundsException("Insufficient funds for withdrawal");
+        throw new InsufficientFundsException("Insufficient funds for withdrawal");
     }
     return ResponseEntity.ok(repository.save(portfolio));
   }
