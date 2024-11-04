@@ -24,6 +24,7 @@
 		<module>rest</module>
 		<module>evolution</module>
 		<module>links</module>
+		<module>database</module>
 	</modules>
 	<dependencies>
 		<dependency>
