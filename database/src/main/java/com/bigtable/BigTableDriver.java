@@ -1,4 +1,4 @@
-package com;
+package com.bigtable;
 
 import com.obj.DemoUser;
 
