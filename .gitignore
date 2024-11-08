@@ -30,6 +30,5 @@ build/
 .vscode/
 
 ### Credentials ###
-app.yaml
 database/resources/
 rice-comp-539-spring-2022-423671897e9b.json
