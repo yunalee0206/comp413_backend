@@ -22,6 +22,44 @@ public class PortfolioController {
     return repository.findAll();
   }
 
+  @GetMapping("/checkbalance")
+  Boolean checkBalance(@RequestParam(value = "userId") Long userId,
+                       @RequestParam(value = "amount") Double amount) {
+    Portfolio portfolio = repository.findByUserId(userId)
+        .orElseThrow(() -> new PortfolioNotFoundException(userId));
+    System.out.println("Checking balance for user " + userId + " amount " + amount);
+    return portfolio.getBalance() >= amount;
+  }
+
+  @GetMapping("/checkshare")
+  Boolean checkShare(@RequestParam(value = "userId") Long userId,
+                     @RequestParam(value = "ticker") String ticker,
+                     @RequestParam(value = "amount") Integer amount) {
+    Portfolio portfolio = repository.findByUserId(userId)
+        .orElseThrow(() -> new PortfolioNotFoundException(userId));
+    System.out.println("Checking share for user " + userId + " ticker " + ticker + " amount " + amount);
+    return portfolio.getStocks().getOrDefault(ticker, 0) >= amount;
+  }
+
+  @PutMapping("/update")
+  String update(@RequestParam(value = "buyerId") Long buyerId,
+                @RequestParam(value = "sellerId") Long sellerId,
+                @RequestParam(value = "amount") Double amount,
+                @RequestParam(value = "ticker") String ticker,
+                @RequestParam(value = "shares") Integer shares) {
+    Portfolio buyerPortfolio = repository.findByUserId(buyerId)
+        .orElseThrow(() -> new PortfolioNotFoundException(buyerId));
+    Portfolio sellerPortfolio = repository.findByUserId(sellerId)
+        .orElseThrow(() -> new PortfolioNotFoundException(sellerId));
+    buyerPortfolio.setBalance(buyerPortfolio.getBalance() - amount);
+    sellerPortfolio.setBalance(sellerPortfolio.getBalance() + amount);
+    buyerPortfolio.getStocks().merge(ticker, shares, Integer::sum);
+    sellerPortfolio.getStocks().merge(ticker, -shares, Integer::sum);
+    repository.save(buyerPortfolio);
+    repository.save(sellerPortfolio);
+    return "Success";
+  }
+
   @GetMapping("/{userId}")
   ResponseEntity<Portfolio> getPortfolioByUserId(@PathVariable Long userId) {
     Portfolio portfolio = repository.findByUserId(userId)
