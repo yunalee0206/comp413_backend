@@ -1,6 +1,7 @@
 package com.bigtable;
 
 import com.obj.DemoUser;
+import com.obj.Transaction;
 import com.google.cloud.bigtable.data.v2.BigtableDataClient;
 import com.google.cloud.bigtable.data.v2.BigtableDataSettings;
 import com.google.cloud.bigtable.data.v2.models.Query;
@@ -13,11 +14,13 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 public class BigTableManager {
 
     private final String bigtableDemoID = "bigtableDemo";
     private final String userTableID = "users";
+    private final String transactionsTableID = "transactions";
     private final BigtableDataClient client;
     private final Random RANDOM = new Random(0xC413 + Instant.now().getEpochSecond());
 
@@ -99,4 +102,26 @@ public class BigTableManager {
                         .deleteRow());
     }
 
+    public String createTransaction(Transaction transaction) {
+        String username = transaction.username();
+        String uuid = UUID.randomUUID().toString();
+        String rowKey = username + "#" + uuid;
+
+        RowMutation newTransaction = RowMutation.create(transactionsTableID, rowKey)
+            .setCell("user_info", "username", username)
+            .setCell("transaction_info", "type", transaction.transactionType())
+            .setCell("transaction_info", "stock_symbol", transaction.stockSymbol())
+            .setCell("transaction_info", "num_shares", transaction.numShares())
+            .setCell("transaction_info", "share_price", Double.toString(transaction.sharePrice()));
+        client.mutateRow(newTransaction);
+        System.out.println("Successfully wrote new transaction \"" + rowKey + "\" to DB.");
+
+        return rowKey;
+    }
+
+    public void deleteTransaction(String rowKey) {
+        Row row = client.readRow(transactionsTableID, rowKey);
+        if (row == null) return;
+        client.mutateRow(RowMutation.create(transactionsTableID, rowKey).deleteRow());
+    }
 }

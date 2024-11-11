@@ -1,6 +1,7 @@
 package com.bigtable;
 
 import com.obj.DemoUser;
+import com.obj.Transaction;
 
 import java.io.IOException;
 import java.time.ZoneOffset;
@@ -61,6 +62,19 @@ public class BigTableDriver {
             System.out.println(u);
         }
         System.out.println("\nNope!");
+
+
+        // TESTING TRANSACTIONS TABLE
+        // TODO: eventually want to make these actual test cases
+
+        System.out.println("\nAdding new transaction");
+        String transactionRowKey = bt.createTransaction(new Transaction(
+               "anthony413", "BUY", "NVDA", 1, 100.00
+        ));
+        System.out.println("\n" + transactionRowKey);
+
+        bt.deleteTransaction(transactionRowKey);
+        System.out.println("\nDeleting transaction");
 
         bt.close();
     }
