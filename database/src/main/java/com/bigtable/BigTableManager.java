@@ -300,6 +300,29 @@ public class BigTableManager {
         return rowKey;
     }
 
+    public StockPrice getStockPrice(String rowKey) {
+        Row row = client.readRow(transactionsTableID, rowKey);
+        if (row == null) {
+            System.out.println("StockPrice at: \"" + rowKey + "\" not found");
+            return null;
+        }
+
+        String stockSymbol = row.getCells("external_stocks", "stock_symbol").get(1).getValue().toStringUtf8();
+        String dateTime = row.getCells("external_stocks", "date/time").get(2).getValue().toStringUtf8();
+        String lowTemp = row.getCells("external_stocks", "low").get(3).getValue().toStringUtf8();
+        double low = Double.parseDouble(lowTemp);
+        String highTemp = row.getCells("external_stocks", "high").get(4).getValue().toStringUtf8();
+        double high = Double.parseDouble(highTemp);
+        String volumeTemp = row.getCells("external_stocks", "volume").get(5).getValue().toStringUtf8();
+        int volume = Integer.parseInt(volumeTemp);
+        String openTemp = row.getCells("external_stocks", "open").get(6).getValue().toStringUtf8();
+        double open = Double.parseDouble(openTemp);
+        String closeTemp = row.getCells("external_stocks", "close").get(7).getValue().toStringUtf8();
+        double close = Double.parseDouble(closeTemp);
+
+        return new StockPrice(stockSymbol,dateTime, low, high, volume, open, close);
+    }
+
     // Row key = stock symbol + "#"
     public void deleteStockPrice(String rowKey) {
         Row row = client.readRow(stockPriceTableID, rowKey);
