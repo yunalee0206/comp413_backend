@@ -1,6 +1,7 @@
 package com.bigtable;
 
 import com.obj.DemoUser;
+import com.obj.StockPrice;
 import com.obj.Transaction;
 
 import java.io.IOException;
@@ -75,6 +76,14 @@ public class BigTableDriver {
 
         bt.deleteTransaction(transactionRowKey);
         System.out.println("\nDeleting transaction");
+
+        // TESTING STOCK PRICE DATA
+        System.out.println("\nAdding new stock price");
+        String stockPrice = bt.createStockPrice(new StockPrice("AAPL", "2024-11-11T15:30:00Z", 149.25, 153.50, 12000000, 150.00, 152.75));
+
+        System.out.println("\n" + stockPrice);
+        bt.deleteStockPrice(transactionRowKey);
+        System.out.println("\nDeleting stock price");
 
         bt.close();
     }

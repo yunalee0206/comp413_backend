@@ -1,12 +1,15 @@
 package com.bigtable;
 
 import com.obj.DemoUser;
+import com.obj.StockPrice;
 import com.obj.Transaction;
 import com.google.cloud.bigtable.data.v2.BigtableDataClient;
 import com.google.cloud.bigtable.data.v2.BigtableDataSettings;
 import com.google.cloud.bigtable.data.v2.models.Query;
 import com.google.cloud.bigtable.data.v2.models.Row;
 import com.google.cloud.bigtable.data.v2.models.RowMutation;
+// Needed to filter multiple conditions for column values
+import com.google.cloud.bigtable.data.v2.models.Filters;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -18,9 +21,12 @@ import java.util.UUID;
 
 public class BigTableManager {
 
+    // Table IDs
     private final String bigtableDemoID = "bigtableDemo";
     private final String userTableID = "users";
     private final String transactionsTableID = "transactions";
+    private final String stockPriceTableID = "stock-prices";
+
     private final BigtableDataClient client;
     private final Random RANDOM = new Random(0xC413 + Instant.now().getEpochSecond());
 
@@ -102,6 +108,7 @@ public class BigTableManager {
                         .deleteRow());
     }
 
+    /* Transactions Table Methods */
     public String createTransaction(Transaction transaction) {
         String username = transaction.username();
         String uuid = UUID.randomUUID().toString();
@@ -124,4 +131,35 @@ public class BigTableManager {
         if (row == null) return;
         client.mutateRow(RowMutation.create(transactionsTableID, rowKey).deleteRow());
     }
+
+    /* Stock Prices Table Methods */
+    public String createStockPrice(StockPrice stockPrice) {
+        // Construct the row key from stockSymbol and dateTime
+        String rowKey = stockPrice.stockSymbol() + "#" + stockPrice.dateTime();
+
+        // Check if the stock price already exists
+        Row row = client.readRow(stockPriceTableID, rowKey);
+
+        // Note: we do not need to check if this row exists. Even if it does, this code will update the row (which is what we want)
+        RowMutation newStockPrice = RowMutation.create(stockPriceTableID, rowKey)
+                .setCell("external_stocks", "stock_key", stockPrice.stockSymbol() + "#" + stockPrice.dateTime())
+                .setCell("external_stocks", "stock_symbol", stockPrice.stockSymbol())
+                .setCell("external_stocks", "date/time", stockPrice.dateTime())
+                .setCell("external_stocks", "low", Double.toString(stockPrice.low()))
+                .setCell("external_stocks", "high", Double.toString(stockPrice.high()))
+                .setCell("external_stocks", "volume", stockPrice.volume())
+                .setCell("external_stocks", "close", Double.toString(stockPrice.close()));
+        client.mutateRow(newStockPrice);
+        System.out.println("Successfully wrote new stock price \"" + rowKey + "\" to DB.");
+        return rowKey;
+    }
+
+    // Row key = stock symbol + "#"
+    public void deleteStockPrice(String rowKey) {
+        Row row = client.readRow(stockPriceTableID, rowKey);
+        if (row == null) return;
+        client.mutateRow(RowMutation.create(stockPriceTableID, rowKey).deleteRow());
+    }
+
+
 }
