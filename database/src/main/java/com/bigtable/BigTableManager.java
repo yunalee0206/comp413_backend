@@ -219,15 +219,15 @@ public class BigTableManager {
     /* Transactions Table Methods */
     public String createTransaction(Transaction transaction) {
         String username = transaction.username();
-        String uuid = UUID.randomUUID().toString();
-        String rowKey = username + "#" + uuid;
+        String rowKey = username + "#" + transaction.uuid();
 
         RowMutation newTransaction = RowMutation.create(transactionsTableID, rowKey)
             .setCell("user_info", "username", username)
             .setCell("transaction_info", "type", transaction.transactionType())
             .setCell("transaction_info", "stock_symbol", transaction.stockSymbol())
             .setCell("transaction_info", "num_shares", Integer.toString(transaction.numShares()))
-            .setCell("transaction_info", "share_price", Double.toString(transaction.sharePrice()));
+            .setCell("transaction_info", "share_price", Double.toString(transaction.sharePrice()))
+            .setCell("uuid", "uuid", transaction.uuid());
         client.mutateRow(newTransaction);
         System.out.println("Successfully wrote new transaction \"" + rowKey + "\" to DB.");
 
@@ -240,8 +240,9 @@ public class BigTableManager {
         String stockSymbol =  row.getCells("transaction_info", "stock_symbol").get(0).getValue().toStringUtf8();
         int numShares = Integer.parseInt(row.getCells("transaction_info", "num_shares").get(0).getValue().toStringUtf8());
         double sharePrice = Double.parseDouble(row.getCells("transaction_info", "share_price").get(0).getValue().toStringUtf8());
+        String uuid = row.getCells("uuid", "uuid").get(0).getValue().toStringUtf8();
 
-        return new Transaction(username, transactionType, stockSymbol, numShares, sharePrice);
+        return new Transaction(username, transactionType, stockSymbol, numShares, sharePrice, uuid);
     }
 
     public Transaction getTransaction(String rowKey) {

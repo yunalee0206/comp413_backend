@@ -10,6 +10,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * This class emulates the client interacting with the DB.
@@ -75,7 +76,7 @@ public class BigTableDriver {
         // TODO: eventually want to make these actual test cases
         System.out.println("\nAdding new transaction");
         String transactionRowKey1 = bt.createTransaction(new Transaction(
-               "anthony413", "BUY", "NVDA", 1, 100.00
+               "anthony413", "BUY", "NVDA", 1, 100.00, UUID.randomUUID().toString()
         ));
 
         Transaction transaction = bt.getTransaction(transactionRowKey1);
@@ -83,7 +84,7 @@ public class BigTableDriver {
 
         System.out.println("\nAdding new transaction");
         String transactionRowKey2 = bt.createTransaction(new Transaction(
-                "anthony413", "BUY", "NVDA", 3, 100.01
+                "anthony413", "BUY", "NVDA", 3, 100.01, UUID.randomUUID().toString()
         ));
 
         Transaction transaction2 = bt.getTransaction(transactionRowKey2);
@@ -91,10 +92,10 @@ public class BigTableDriver {
 
         System.out.println("\nAdding new transaction");
         String transactionRowKey3 = bt.createTransaction(new Transaction(
-                "brian123", "BUY", "NVDA", 3, 100.01
+                "brian123", "BUY", "NVDA", 3, 100.01, UUID.randomUUID().toString()
         ));
 
-        Transaction transaction3 = bt.getTransaction(transactionRowKey2);
+        Transaction transaction3 = bt.getTransaction(transactionRowKey3);
         System.out.println(transaction3);
 
         System.out.println("\nGetting all transactions from anthony413");
@@ -106,10 +107,9 @@ public class BigTableDriver {
         }
         System.out.println("\nThere were " + cnt + " transactions");
 
-
-        bt.deleteTransaction(transactionRowKey1);
-        bt.deleteTransaction(transactionRowKey2);
-        bt.deleteTransaction(transactionRowKey3);
+        for (Transaction txn : transactions) {
+            bt.deleteTransaction(txn.username() + "#" + txn.uuid());
+        }
         System.out.println("\nDeleted transactions");
 
         // TESTING STOCK PRICE DATA
