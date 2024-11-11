@@ -3,6 +3,7 @@ package com.bigtable;
 import com.obj.DemoUser;
 import com.obj.StockPrice;
 import com.obj.Transaction;
+import com.obj.User;
 
 import java.io.IOException;
 import java.time.ZoneOffset;
@@ -25,7 +26,10 @@ public class BigTableDriver {
 
         BigTableManager bt = new BigTableManager(projectId, instanceId);
 
+        testUserMethods(bt);
+        /* OLD USER DEMO CODE. DEPRECATE SOON.
         System.out.println("Create 3 users");
+
         bt.createUserDemo(new DemoUser("anthony413", "orange", timestamp()));
         bt.createUserDemo(new DemoUser("rohith413", "blue", timestamp()));
         bt.createUserDemo(new DemoUser("alexei413", "red", timestamp()));
@@ -63,6 +67,7 @@ public class BigTableDriver {
             System.out.println(u);
         }
         System.out.println("\nNope!");
+        */
 
 
         // TESTING TRANSACTIONS TABLE
@@ -94,5 +99,48 @@ public class BigTableDriver {
      */
     private static String timestamp() {
         return ZonedDateTime.now(ZoneOffset.UTC).format(TSFORMATTER);
+    }
+
+    /**
+     * Tests all of the user methods available. Made it it's own method for clarity.
+     */
+    public static void testUserMethods(BigTableManager bt) {
+        System.out.println("\nTesting user methods:");
+
+        // Create a test user
+        System.out.println("\nCreating test user...");
+        bt.createUser(new User("testuser", "password123", "initial_token", 413));
+
+        // Get user
+        System.out.println("\nGetting user info:");
+        User user = bt.getUser("testuser");
+        System.out.println(user);
+
+        // Test "authentication" (again, this is not secure at all.)
+        System.out.println("\nTesting authentication:");
+        System.out.println("Correct password test: " + bt.authenticateUser("testuser", "password123"));
+        System.out.println("Wrong password test: " + bt.authenticateUser("testuser", "wrongpass"));
+
+        // Get token
+        System.out.println("\nGetting user token:");
+        String token = bt.getUserToken("testuser");
+        System.out.println("Token: " + token);
+
+        // Get and set balance
+        System.out.println("\nTesting balance operations:");
+        System.out.println("Initial balance: $" + bt.getUserCashBalance("testuser"));
+        bt.setUserCashBalance("testuser", 2000);
+        System.out.println("New balance: $" + bt.getUserCashBalance("testuser"));
+
+        // Delete user
+        System.out.println("\nDeleting user:");
+        bt.deleteUser("testuser");
+
+        // Verify deletion
+        System.out.println("\nTrying to get deleted user:");
+        User deletedUser = bt.getUser("testuser");
+        if (deletedUser == null) {
+            System.out.println("User successfully deleted");
+        }
     }
 }

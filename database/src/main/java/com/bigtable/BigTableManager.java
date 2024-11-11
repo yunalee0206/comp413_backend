@@ -10,6 +10,7 @@ import com.google.cloud.bigtable.data.v2.models.Row;
 import com.google.cloud.bigtable.data.v2.models.RowMutation;
 // Needed to filter multiple conditions for column values
 import com.google.cloud.bigtable.data.v2.models.Filters;
+import com.obj.User;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -49,6 +50,8 @@ public class BigTableManager {
         this.client.close();
     }
 
+    /* User methods—derived in large part from the demo. */
+
     List<DemoUser> getUsersDemo() {
         List<DemoUser> users = new ArrayList<>();
 //        Stream<Row> rows = client.readRows(Query.create(usersTableID)).stream();
@@ -70,6 +73,7 @@ public class BigTableManager {
         return row.getCells("User", "color").get(0).getValue().toStringUtf8();
     }
 
+    /* From the demo. Should be deprecated, but keeping for now...
     public void createUserDemo(DemoUser user) {
         String username = user.username();
         if (client.readRow(bigtableDemoID, username) != null) {
@@ -86,7 +90,109 @@ public class BigTableManager {
         client.mutateRow(mutation);
         System.out.println("Successfully wrote user \"" + username + "\" to DB.");
     }
+     */
+    public void createUser(User user) {
+        String username = user.username();
+        // First check if user exists
+        // NOTE: this assumes the username is our row key—this might not be the case?
+        Row existingUser = client.readRow(userTableID, username);
+        if (existingUser != null) {
+            System.out.println("User \"" + username + "\" already exists in table");
+            return;
+        }
 
+        // Generate initial token for the user
+        // NOTE: this assumes that the user object already created has a token.
+        // can easily generate one if that's what we need, however.
+        String initialToken = user.token();
+
+        // Create the user entry - username is both row key and a column value. Hopefully that's not a bad idea.
+        RowMutation mutation = RowMutation.create(userTableID, username)  // Again, username as row key
+                .setCell("user_info", "username", username)
+                .setCell("user_info", "password", user.password())
+                .setCell("user_info", "token", initialToken)
+                .setCell("cash_balance", "cash_balance", Integer.toString(user.cash_balance()));
+
+        client.mutateRow(mutation);
+        System.out.println("Successfully created user: " + username);
+    }
+
+    // Get complete user
+    public User getUser(String username) {
+        Row row = client.readRow(userTableID, username);
+        if (row == null) {
+            System.out.println("User \"" + username + "\" not found");
+            return null;
+        }
+
+        String password = row.getCells("user_info", "password").get(0).getValue().toStringUtf8();
+        String token = row.getCells("user_info", "token").get(0).getValue().toStringUtf8();
+        int cashBalance = Integer.parseInt(row.getCells("cash_balance", "cash_balance").get(0).getValue().toStringUtf8());
+
+        return new User(username, password, token, cashBalance);
+    }
+
+    // Authenticate a user with a user/pass combo.
+    public boolean authenticateUser(String username, String providedPassword) {
+        Row row = client.readRow(userTableID, username);
+        if (row == null) {
+            System.out.println("User \"" + username + "\" not found");
+            return false;
+        }
+
+        String storedPassword = row.getCells("user_info", "password").get(0).getValue().toStringUtf8();
+        return storedPassword.equals(providedPassword); // To be clear, this is not secure at all.
+    }
+
+    // Get user token
+    public String getUserToken(String username) {
+        Row row = client.readRow(userTableID, username);
+        if (row == null) {
+            System.out.println("User \"" + username + "\" not found");
+            return null;
+        }
+        return row.getCells("user_info", "token").get(0).getValue().toStringUtf8();
+    }
+
+    // Get cash balance
+    public int getUserCashBalance(String username) {
+        Row row = client.readRow(userTableID, username);
+        if (row == null) {
+            System.out.println("User \"" + username + "\" not found");
+            return -1;
+        }
+        return Integer.parseInt(row.getCells("cash_balance", "cash_balance").get(0).getValue().toStringUtf8());
+    }
+
+    // Set cash balance
+    // I don't think you should directly set the cash balance like this. But in case
+    // we need to produce hacky code... I'd rather be ready.
+    public void setUserCashBalance(String username, int newBalance) {
+        Row row = client.readRow(userTableID, username);
+        if (row == null) {
+            System.out.println("User \"" + username + "\" not found");
+            return;
+        }
+
+        RowMutation mutation = RowMutation.create(userTableID, username)
+                .setCell("cash_balance", "cash_balance", Integer.toString(newBalance));
+        client.mutateRow(mutation);
+        System.out.println("Successfully updated balance for user: " + username);
+    }
+
+    // Delete user.
+    public void deleteUser(String username) {
+        Row row = client.readRow(userTableID, username);
+        if (row == null) {
+            System.out.println("User \"" + username + "\" not found");
+            return;
+        }
+
+        client.mutateRow(RowMutation.create(userTableID, username).deleteRow());
+        System.out.println("Successfully deleted user: " + username);
+    }
+
+    /* OLD DEMO CODE—will be thrown out in refactoring soon
     public void updateColorDemo(String username, String value) {
         Row row = client.readRow(bigtableDemoID, username);
         if (row == null) return;
@@ -107,6 +213,7 @@ public class BigTableManager {
                 RowMutation.create(bigtableDemoID, username)
                         .deleteRow());
     }
+    */
 
     /* Transactions Table Methods */
     public String createTransaction(Transaction transaction) {
