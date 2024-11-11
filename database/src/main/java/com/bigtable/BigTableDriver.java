@@ -24,40 +24,40 @@ public class BigTableDriver {
         BigTableManager bt = new BigTableManager(projectId, instanceId);
 
         System.out.println("Create 3 users");
-        bt.createUser(new DemoUser("anthony413", "orange", timestamp()));
-        bt.createUser(new DemoUser("rohith413", "blue", timestamp()));
-        bt.createUser(new DemoUser("alexei413", "red", timestamp()));
+        bt.createUserDemo(new DemoUser("anthony413", "orange", timestamp()));
+        bt.createUserDemo(new DemoUser("rohith413", "blue", timestamp()));
+        bt.createUserDemo(new DemoUser("alexei413", "red", timestamp()));
 
-        System.out.println("Alexei's Color: " + bt.getUserColor("alexei413"));
+        System.out.println("Alexei's Color: " + bt.getUserColorDemo("alexei413"));
 
         System.out.println("\nChange Alexei's Color");
-        bt.updateColor("alexei413", "yellow");
-        bt.updateColor("alexei539", "yellow");
-        System.out.println("Alexei's Color: " + bt.getUserColor("alexei413"));
+        bt.updateColorDemo("alexei413", "yellow");
+        bt.updateColorDemo("alexei539", "yellow");
+        System.out.println("Alexei's Color: " + bt.getUserColorDemo("alexei413"));
 
-        System.out.println("alexei413 color: " + bt.getUserColor("alexei413"));
-        System.out.println("alexei539 color: " + bt.getUserColor("alexei539"));
+        System.out.println("alexei413 color: " + bt.getUserColorDemo("alexei413"));
+        System.out.println("alexei539 color: " + bt.getUserColorDemo("alexei539"));
 
-        bt.createUser(new DemoUser("alexei539", "red", timestamp()));
+        bt.createUserDemo(new DemoUser("alexei539", "red", timestamp()));
         System.out.println("\nCurrent 'User' column family (table)");
-        for (DemoUser u: bt.getUsers()) {
+        for (DemoUser u: bt.getUsersDemo()) {
             System.out.println(u);
         }
 
         System.out.println("\nDeleting alexei413:");
-        bt.deleteUser("alexei413");
-        for (DemoUser u: bt.getUsers()) {
+        bt.deleteUserDemo("alexei413");
+        for (DemoUser u: bt.getUsersDemo()) {
             System.out.println(u);
         }
 
         System.out.println("\nDeleting all users now:");
-        for (DemoUser u: bt.getUsers()) {
+        for (DemoUser u: bt.getUsersDemo()) {
             System.out.println("Deleting " + u.username());
-            bt.deleteUser(u.username());
+            bt.deleteUserDemo(u.username());
         }
 
         System.out.println("\nAnything left in the table?");
-        for (DemoUser u: bt.getUsers()) {
+        for (DemoUser u: bt.getUsersDemo()) {
             System.out.println(u);
         }
         System.out.println("\nNope!");
