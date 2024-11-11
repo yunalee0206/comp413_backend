@@ -16,7 +16,8 @@ import java.util.Random;
 
 public class BigTableManager {
 
-    private final String usersTableID = "bigtableDemo";
+    private final String bigtableDemoID = "bigtableDemo";
+    private final String userTableID = "users";
     private final BigtableDataClient client;
     private final Random RANDOM = new Random(0xC413 + Instant.now().getEpochSecond());
 
@@ -39,10 +40,10 @@ public class BigTableManager {
         this.client.close();
     }
 
-    List<DemoUser> getUsers() {
+    List<DemoUser> getUsersDemo() {
         List<DemoUser> users = new ArrayList<>();
 //        Stream<Row> rows = client.readRows(Query.create(usersTableID)).stream();
-        Iterator<Row> rows = client.readRows(Query.create(usersTableID)).stream().iterator();
+        Iterator<Row> rows = client.readRows(Query.create(bigtableDemoID)).stream().iterator();
         Row row;
         while (rows.hasNext()) {
             row = rows.next();
@@ -54,21 +55,21 @@ public class BigTableManager {
         return users;
     }
 
-    String getUserColor(String username) {
-        Row row = client.readRow(usersTableID, username);
+    String getUserColorDemo(String username) {
+        Row row = client.readRow(bigtableDemoID, username);
         if (row == null) return "";
         return row.getCells("User", "color").get(0).getValue().toStringUtf8();
     }
 
-    public void createUser(DemoUser user) {
+    public void createUserDemo(DemoUser user) {
         String username = user.username();
-        if (client.readRow(usersTableID, username) != null) {
+        if (client.readRow(bigtableDemoID, username) != null) {
             System.out.println("User \"" + username + "\" already exists in table");
             return;
         }
 
         RowMutation mutation = RowMutation.create(
-                        usersTableID,
+                        bigtableDemoID,
                         username)
                 .setCell("User", "username", username)
                 .setCell("User", "color", user.color())
@@ -77,24 +78,24 @@ public class BigTableManager {
         System.out.println("Successfully wrote user \"" + username + "\" to DB.");
     }
 
-    public void updateColor(String username, String value) {
-        Row row = client.readRow(usersTableID, username);
+    public void updateColorDemo(String username, String value) {
+        Row row = client.readRow(bigtableDemoID, username);
         if (row == null) return;
         String oldColor = row.getCells("User", "color").get(0).getValue().toStringUtf8();
         if (!value.equals(oldColor)) {
             client.mutateRow(
-                    RowMutation.create(usersTableID, username)
+                    RowMutation.create(bigtableDemoID, username)
                             .setCell("User", "color", String.valueOf(value))
             );
         }
     }
 
-    public void deleteUser(String username) {
+    public void deleteUserDemo(String username) {
 
-        Row row = client.readRow(usersTableID, username);
+        Row row = client.readRow(bigtableDemoID, username);
         if (row == null) return;
         client.mutateRow(
-                RowMutation.create(usersTableID, username)
+                RowMutation.create(bigtableDemoID, username)
                         .deleteRow());
     }
 
