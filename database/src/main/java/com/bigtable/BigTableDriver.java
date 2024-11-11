@@ -89,6 +89,14 @@ public class BigTableDriver {
         Transaction transaction2 = bt.getTransaction(transactionRowKey2);
         System.out.println(transaction2);
 
+        System.out.println("\nAdding new transaction");
+        String transactionRowKey3 = bt.createTransaction(new Transaction(
+                "brian123", "BUY", "NVDA", 3, 100.01
+        ));
+
+        Transaction transaction3 = bt.getTransaction(transactionRowKey2);
+        System.out.println(transaction3);
+
         System.out.println("\nGetting all transactions from anthony413");
         List<Transaction> transactions = bt.getTransactionsByUser("anthony413");
         int cnt = 0;
@@ -101,6 +109,7 @@ public class BigTableDriver {
 
         bt.deleteTransaction(transactionRowKey1);
         bt.deleteTransaction(transactionRowKey2);
+        bt.deleteTransaction(transactionRowKey3);
         System.out.println("\nDeleted transactions");
 
         // TESTING STOCK PRICE DATA
