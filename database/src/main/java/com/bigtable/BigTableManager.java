@@ -8,6 +8,7 @@ import com.google.cloud.bigtable.data.v2.BigtableDataSettings;
 import com.google.cloud.bigtable.data.v2.models.Query;
 import com.google.cloud.bigtable.data.v2.models.Row;
 import com.google.cloud.bigtable.data.v2.models.RowMutation;
+
 // Needed to filter multiple conditions for column values
 import com.google.cloud.bigtable.data.v2.models.Filters;
 import com.obj.User;
@@ -225,7 +226,7 @@ public class BigTableManager {
             .setCell("user_info", "username", username)
             .setCell("transaction_info", "type", transaction.transactionType())
             .setCell("transaction_info", "stock_symbol", transaction.stockSymbol())
-            .setCell("transaction_info", "num_shares", transaction.numShares())
+            .setCell("transaction_info", "num_shares", Integer.toString(transaction.numShares()))
             .setCell("transaction_info", "share_price", Double.toString(transaction.sharePrice()));
         client.mutateRow(newTransaction);
         System.out.println("Successfully wrote new transaction \"" + rowKey + "\" to DB.");
@@ -233,10 +234,47 @@ public class BigTableManager {
         return rowKey;
     }
 
+    private Transaction createTransactionRecord(Row row) {
+        String username =  row.getCells("user_info", "username").get(0).getValue().toStringUtf8();
+        String transactionType = row.getCells("transaction_info", "type").get(0).getValue().toStringUtf8();
+        String stockSymbol =  row.getCells("transaction_info", "stock_symbol").get(0).getValue().toStringUtf8();
+        int numShares = Integer.parseInt(row.getCells("transaction_info", "num_shares").get(0).getValue().toStringUtf8());
+        double sharePrice = Double.parseDouble(row.getCells("transaction_info", "share_price").get(0).getValue().toStringUtf8());
+
+        return new Transaction(username, transactionType, stockSymbol, numShares, sharePrice);
+    }
+
+    public Transaction getTransaction(String rowKey) {
+        Row row = client.readRow(transactionsTableID, rowKey);
+
+        return createTransactionRecord(row);
+    }
+
+    public List<Transaction> getTransactionsByUser(String username) {
+        String rowKeyPrefix = username + "#";
+        Query query = Query.create(transactionsTableID).prefix(rowKeyPrefix);
+        List<Transaction> transactions = new ArrayList<>();
+
+        client.readRows(query).forEach(row -> {
+            transactions.add(createTransactionRecord(row));
+        });
+
+        return transactions;
+    }
+
     public void deleteTransaction(String rowKey) {
         Row row = client.readRow(transactionsTableID, rowKey);
         if (row == null) return;
         client.mutateRow(RowMutation.create(transactionsTableID, rowKey).deleteRow());
+    }
+
+    public void deleteAllTransactions() {
+        Iterator<Row> rows = client.readRows(Query.create(transactionsTableID)).stream().iterator();
+        Row row;
+        while (rows.hasNext()) {
+            row = rows.next();
+            client.mutateRow(RowMutation.create(transactionsTableID, row.getKey()).deleteRow());
+        }
     }
 
     /* Stock Prices Table Methods */

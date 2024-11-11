@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 /**
  * This class emulates the client interacting with the DB.
@@ -72,22 +73,42 @@ public class BigTableDriver {
 
         // TESTING TRANSACTIONS TABLE
         // TODO: eventually want to make these actual test cases
-
         System.out.println("\nAdding new transaction");
-        String transactionRowKey = bt.createTransaction(new Transaction(
+        String transactionRowKey1 = bt.createTransaction(new Transaction(
                "anthony413", "BUY", "NVDA", 1, 100.00
         ));
-        System.out.println("\n" + transactionRowKey);
 
-        bt.deleteTransaction(transactionRowKey);
-        System.out.println("\nDeleting transaction");
+        Transaction transaction = bt.getTransaction(transactionRowKey1);
+        System.out.println(transaction);
+
+        System.out.println("\nAdding new transaction");
+        String transactionRowKey2 = bt.createTransaction(new Transaction(
+                "anthony413", "BUY", "NVDA", 3, 100.01
+        ));
+
+        Transaction transaction2 = bt.getTransaction(transactionRowKey2);
+        System.out.println(transaction2);
+
+        System.out.println("\nGetting all transactions from anthony413");
+        List<Transaction> transactions = bt.getTransactionsByUser("anthony413");
+        int cnt = 0;
+        for (Transaction txn : transactions) {
+            System.out.println(txn);
+            cnt += 1;
+        }
+        System.out.println("\nThere were " + cnt + " transactions");
+
+
+        bt.deleteTransaction(transactionRowKey1);
+        bt.deleteTransaction(transactionRowKey2);
+        System.out.println("\nDeleted transactions");
 
         // TESTING STOCK PRICE DATA
         System.out.println("\nAdding new stock price");
         String stockPrice = bt.createStockPrice(new StockPrice("AAPL", "2024-11-11T15:30:00Z", 149.25, 153.50, 12000000, 150.00, 152.75));
 
         System.out.println("\n" + stockPrice);
-        bt.deleteStockPrice(transactionRowKey);
+        bt.deleteStockPrice(stockPrice);
         System.out.println("\nDeleting stock price");
 
         bt.close();
