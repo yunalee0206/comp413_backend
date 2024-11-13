@@ -1,4 +1,4 @@
-package user;
+package com.backend.owlfinance.User;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -1,4 +1,4 @@
-package user;
+package com.backend.owlfinance.User;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
