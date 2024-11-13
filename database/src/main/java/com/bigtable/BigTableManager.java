@@ -283,9 +283,6 @@ public class BigTableManager {
         // Construct the row key from stockSymbol and dateTime
         String rowKey = stockPrice.stockSymbol() + "#" + stockPrice.dateTime();
 
-        // Check if the stock price already exists
-        Row row = client.readRow(stockPriceTableID, rowKey);
-
         // Note: we do not need to check if this row exists. Even if it does, this code will update the row (which is what we want)
         RowMutation newStockPrice = RowMutation.create(stockPriceTableID, rowKey)
                 .setCell("external_stocks", "stock_key", stockPrice.stockSymbol() + "#" + stockPrice.dateTime())
@@ -293,7 +290,8 @@ public class BigTableManager {
                 .setCell("external_stocks", "date/time", stockPrice.dateTime())
                 .setCell("external_stocks", "low", Double.toString(stockPrice.low()))
                 .setCell("external_stocks", "high", Double.toString(stockPrice.high()))
-                .setCell("external_stocks", "volume", stockPrice.volume())
+                .setCell("external_stocks", "volume", Integer.toString(stockPrice.volume()))
+                .setCell("external_stocks", "open", Double.toString(stockPrice.open()))
                 .setCell("external_stocks", "close", Double.toString(stockPrice.close()));
         client.mutateRow(newStockPrice);
         System.out.println("Successfully wrote new stock price \"" + rowKey + "\" to DB.");
@@ -301,23 +299,26 @@ public class BigTableManager {
     }
 
     public StockPrice getStockPrice(String rowKey) {
-        Row row = client.readRow(transactionsTableID, rowKey);
+        Row row = client.readRow(stockPriceTableID, rowKey);
         if (row == null) {
             System.out.println("StockPrice at: \"" + rowKey + "\" not found");
             return null;
         }
 
-        String stockSymbol = row.getCells("external_stocks", "stock_symbol").get(1).getValue().toStringUtf8();
-        String dateTime = row.getCells("external_stocks", "date/time").get(2).getValue().toStringUtf8();
-        String lowTemp = row.getCells("external_stocks", "low").get(3).getValue().toStringUtf8();
+        // Fix later: change UTF8 to toString
+        //String found_key = row.getCells("external_stocks", "stock_key").get(0).getValue().toStringUtf8();
+        String stockSymbol = row.getCells("external_stocks", "stock_symbol").get(0).getValue().toStringUtf8();
+        String dateTime = row.getCells("external_stocks", "date/time").get(0).getValue().toStringUtf8();
+        String lowTemp = row.getCells("external_stocks", "low").get(0).getValue().toStringUtf8();
         double low = Double.parseDouble(lowTemp);
-        String highTemp = row.getCells("external_stocks", "high").get(4).getValue().toStringUtf8();
+        String highTemp = row.getCells("external_stocks", "high").get(0).getValue().toStringUtf8();
         double high = Double.parseDouble(highTemp);
-        String volumeTemp = row.getCells("external_stocks", "volume").get(5).getValue().toStringUtf8();
+        String volumeTemp = row.getCells("external_stocks", "volume").get(0).getValue().toStringUtf8();
+        System.out.println(volumeTemp);
         int volume = Integer.parseInt(volumeTemp);
-        String openTemp = row.getCells("external_stocks", "open").get(6).getValue().toStringUtf8();
+        String openTemp = row.getCells("external_stocks", "open").get(0).getValue().toStringUtf8();
         double open = Double.parseDouble(openTemp);
-        String closeTemp = row.getCells("external_stocks", "close").get(7).getValue().toStringUtf8();
+        String closeTemp = row.getCells("external_stocks", "close").get(0).getValue().toStringUtf8();
         double close = Double.parseDouble(closeTemp);
 
         return new StockPrice(stockSymbol,dateTime, low, high, volume, open, close);
@@ -329,6 +330,5 @@ public class BigTableManager {
         if (row == null) return;
         client.mutateRow(RowMutation.create(stockPriceTableID, rowKey).deleteRow());
     }
-
 
 }

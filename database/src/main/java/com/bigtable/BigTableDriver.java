@@ -116,7 +116,12 @@ public class BigTableDriver {
         System.out.println("\nAdding new stock price");
         String stockPrice = bt.createStockPrice(new StockPrice("AAPL", "2024-11-11T15:30:00Z", 149.25, 153.50, 12000000, 150.00, 152.75));
 
-        System.out.println("\n" + stockPrice);
+        System.out.println("\n" + "Row key of stock price added" + stockPrice);
+        String stockRowKey = "AAPL" + "#" + "2024-11-11T15:30:00Z";
+        System.out.println("\n" + "Getting stock price with row key: " + stockRowKey);
+        StockPrice found = bt.getStockPrice(stockRowKey);
+        System.out.println("Stock found: " + found);
+
         bt.deleteStockPrice(stockPrice);
         System.out.println("\nDeleting stock price");
 
