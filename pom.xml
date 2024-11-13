@@ -20,10 +20,11 @@
 	</properties>
 
 	<modules>
-		<module>nonrest</module>
-		<module>rest</module>
-		<module>evolution</module>
-		<module>links</module>
+<!--		<module>nonrest</module>-->
+<!--		<module>rest</module>-->
+<!--		<module>evolution</module>-->
+<!--		<module>links</module>-->
+		<module>backend</module>
 		<module>database</module>
 	</modules>
 	<dependencies>
