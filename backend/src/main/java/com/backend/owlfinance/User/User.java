@@ -1,4 +1,4 @@
-package user;
+package com.backend.owlfinance.User;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -7,24 +7,24 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 
 @Entity
-@Table(name = "userwithtoken")
-public class UserWithToken {
+@Table(name = "users")
+public class User {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-
     private Long id;
+
     private String username;
-    private String token;
 
-    public UserWithToken() {}
+    // Add other fields if needed (e.g., email, password, etc.)
 
-    public UserWithToken(Long id, String username, String token) {
-        this.id = id;
+    public User() {}
+
+    public User(String username) {
         this.username = username;
-        this.token = token;
     }
 
-    // Getters and setters
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -41,11 +41,5 @@ public class UserWithToken {
         this.username = username;
     }
 
-    public String getToken() {
-        return token;
-    }
-
-    public void setToken(String token) {
-        this.token = token;
-    }
+    // Add other fields' getters and setters if necessary
 }

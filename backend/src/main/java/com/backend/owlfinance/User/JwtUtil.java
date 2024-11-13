@@ -1,4 +1,4 @@
-package user;
+package com.backend.owlfinance.User;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
