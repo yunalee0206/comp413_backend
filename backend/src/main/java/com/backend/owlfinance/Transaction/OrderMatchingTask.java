@@ -1,4 +1,4 @@
-package com.backend.owlfinance.Transaction;
+package com.backend.owlfinance;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;

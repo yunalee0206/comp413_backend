@@ -1,6 +1,5 @@
-package com.backend.owlfinance.Transaction;
+package com.backend.owlfinance;
 
-import com.backend.owlfinance.Transaction.Order;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

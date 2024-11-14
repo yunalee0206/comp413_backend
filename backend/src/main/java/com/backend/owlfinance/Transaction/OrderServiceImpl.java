@@ -1,4 +1,4 @@
-package com.backend.owlfinance.Transaction;
+package com.backend.owlfinance;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -9,12 +9,15 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private OrderOperation orderOp;
+
+    @Autowired
+    private Transact2PortfolioAdapter t2pAdapter;
     private final ConcurrentHashMap<String, OrderBook> orderBooks = new ConcurrentHashMap<>();
 
     @Override
     public Order placeOrder(String type, Order order) {
         order.setType(type);
-        OrderBook orderBook = orderBooks.computeIfAbsent(order.getSymbol(), s -> new OrderBook(this.orderOp));
+        OrderBook orderBook = orderBooks.computeIfAbsent(order.getSymbol(), s -> new OrderBook(this.orderOp, this.t2pAdapter));
         return orderBook.addOrder(order);
     }
 

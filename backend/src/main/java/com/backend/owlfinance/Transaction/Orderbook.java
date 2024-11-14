@@ -1,30 +1,45 @@
-package com.backend.owlfinance.Transaction;
+package com.backend.owlfinance;
 
 import java.util.PriorityQueue;
 import java.util.Comparator;
 
 
 class OrderBook {
-
     private OrderOperation orderOperation;
+    private Transact2PortfolioAdapter t2pAdapter;
     private PriorityQueue<Order> buyOrders;
     private PriorityQueue<Order> sellOrders;
 
 
-    public OrderBook(OrderOperation orderOperation) {
+    public OrderBook(OrderOperation orderOperation, Transact2PortfolioAdapter t2pAdapter) {
         this.orderOperation = orderOperation;
+        this.t2pAdapter = t2pAdapter;
         buyOrders = new PriorityQueue<>(new BuyOrderComparator());
         sellOrders = new PriorityQueue<>(new SellOrderComparator());
     }
 
     public Order addOrder(Order order) {
-        Order o = orderOperation.updateOrder(order);
-        if (o.getType().equals("buy")) {
+        Order o = null;
+        if (order.getType().equals("buy")) {
+            boolean isBuyerVerified = t2pAdapter.checkBalance(order.getUserId(), order.getPrice() * order.getQuantity());
+            if (!isBuyerVerified) {
+                System.out.println("Failure to add buy order: Insufficient balance");
+                return null;
+            }
+            o = orderOperation.updateOrder(order);
             buyOrders.add(o);
             System.out.println("Buy Order addded: " + o.getId() + " Ticker: " + o.getSymbol() + " Price: " + o.getPrice() + " Quantity: " + o.getQuantity());
-        } else if (o.getType().equals("sell")) {
+
+        } else if (order.getType().equals("sell")) {
+            boolean isSellerVerified = t2pAdapter.checkShare(order.getUserId(), order.getSymbol(), order.getQuantity());
+            if (!isSellerVerified) {
+                System.out.println("Failure to add sell order: Insufficient shares");
+                return null;
+            }
+            o = orderOperation.updateOrder(order);
             sellOrders.add(o);
             System.out.println("Sell Order addded: " + o.getId() + " Ticker: " + o.getSymbol() + " Price: " + o.getPrice() + " Quantity: " + o.getQuantity());
+
         }
         return o;
     }
@@ -45,6 +60,7 @@ class OrderBook {
     }
 
     public void matchOrders() {
+
         while (!buyOrders.isEmpty() && !sellOrders.isEmpty()) {
             Order buyOrder = buyOrders.peek();
             Order sellOrder = sellOrders.peek();
@@ -72,20 +88,22 @@ class OrderBook {
     private void executeTransaction(Order buy, Order sell) {
         double price = buy.getTimestamp().compareTo(sell.getTimestamp()) > 0 ? sell.getPrice() : buy.getPrice();
         int quantity = Math.min(buy.getQuantity(), sell.getQuantity());
-
-        System.out.printf("Executing trasaction... Ticker: %s, Quantity: %d, Buy: %d, Sell: %d, Price: %f \n",
-                         buy.getSymbol(), quantity, buy.getId(), sell.getId(), price);
-
+    
         buy.setQuantity(buy.getQuantity() - quantity);
         sell.setQuantity(sell.getQuantity() - quantity);
         if (buy.getQuantity() == 0) {
-            System.out.println("Buy Order filled: " + buy.getId()+ " " + buy.getSymbol());
+            System.out.println("Buy Order filled: " + buy.getId());
             removeOrder(buy);
         }
         if (sell.getQuantity() == 0) {
-            System.out.println("Sell Order filled: " + sell.getId()+ " " + sell.getSymbol());
+            System.out.println("Sell Order filled: " + sell.getId());
             removeOrder(sell);
         }
+
+        this.t2pAdapter.updatePortfolio(buy.getUserId(), sell.getUserId(), price * quantity, buy.getSymbol(), quantity);
+
+        System.out.println("Transaction completed");
+        System.out.println("--------------------------------");
 
     }
 

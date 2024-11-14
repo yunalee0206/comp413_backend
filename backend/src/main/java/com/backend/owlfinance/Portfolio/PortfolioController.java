@@ -23,7 +23,7 @@ public class PortfolioController {
   }
 
   @GetMapping("/checkbalance")
-  Boolean checkBalance(@RequestParam(value = "userId") Long userId,
+  public Boolean checkBalance(@RequestParam(value = "userId") Long userId,
                        @RequestParam(value = "amount") Double amount) {
     Portfolio portfolio = repository.findByUserId(userId)
         .orElseThrow(() -> new PortfolioNotFoundException(userId));
@@ -32,7 +32,7 @@ public class PortfolioController {
   }
 
   @GetMapping("/checkshare")
-  Boolean checkShare(@RequestParam(value = "userId") Long userId,
+  public Boolean checkShare(@RequestParam(value = "userId") Long userId,
                      @RequestParam(value = "ticker") String ticker,
                      @RequestParam(value = "amount") Integer amount) {
     Portfolio portfolio = repository.findByUserId(userId)
@@ -42,7 +42,7 @@ public class PortfolioController {
   }
 
   @PutMapping("/update")
-  String update(@RequestParam(value = "buyerId") Long buyerId,
+  public String update(@RequestParam(value = "buyerId") Long buyerId,
                 @RequestParam(value = "sellerId") Long sellerId,
                 @RequestParam(value = "amount") Double amount,
                 @RequestParam(value = "ticker") String ticker,

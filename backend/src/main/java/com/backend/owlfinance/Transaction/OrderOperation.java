@@ -1,4 +1,4 @@
-package com.backend.owlfinance.Transaction;
+package com.backend.owlfinance;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
