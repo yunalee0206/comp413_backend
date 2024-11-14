@@ -1,0 +1,6 @@
+runtime: java17
+entrypoint: java -jar out/artifacts/appenginedemo_jar/appenginedemo.jar
+service: appenginedemo
+service_account: comp413@rice-comp-539-spring-2022.iam.gserviceaccount.com
+env_variables:
+  GOOGLE_APPLICATION_CREDENTIALS: rice-comp-539-spring-2022-423671897e9b.json

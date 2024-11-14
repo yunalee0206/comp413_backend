@@ -1,4 +1,4 @@
-package user;
+package com.backend.owlfinance.User;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,9 +14,7 @@ public class SecurityConfig {
                 .csrf().disable()  // Disable CSRF protection for development/testing (not recommended for production)
                 .authorizeHttpRequests((requests) -> requests
                         .requestMatchers("/users/**").permitAll()  // Allow public access to the users endpoint
-                        .anyRequest().authenticated()  // Secure other endpoints
-                )
-                .httpBasic();  // Enable basic authentication
+                );
 
         return http.build();
     }
