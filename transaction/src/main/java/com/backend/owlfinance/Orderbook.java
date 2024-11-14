@@ -86,25 +86,31 @@ class OrderBook {
 
     // TODO: Trasaction logic
     private void executeTransaction(Order buy, Order sell) {
-        double price = buy.getTimestamp().compareTo(sell.getTimestamp()) > 0 ? sell.getPrice() : buy.getPrice();
-        int quantity = Math.min(buy.getQuantity(), sell.getQuantity());
-    
-        buy.setQuantity(buy.getQuantity() - quantity);
-        sell.setQuantity(sell.getQuantity() - quantity);
-        if (buy.getQuantity() == 0) {
-            System.out.println("Buy Order filled: " + buy.getId());
-            removeOrder(buy);
+        try {
+            double price = buy.getTimestamp().compareTo(sell.getTimestamp()) > 0 ? sell.getPrice() : buy.getPrice();
+            int quantity = Math.min(buy.getQuantity(), sell.getQuantity());
+        
+            buy.setQuantity(buy.getQuantity() - quantity);
+            sell.setQuantity(sell.getQuantity() - quantity);
+            if (buy.getQuantity() == 0) {
+                System.out.println("Buy Order filled: " + buy.getId());
+                removeOrder(buy);
+            }
+            if (sell.getQuantity() == 0) {
+                System.out.println("Sell Order filled: " + sell.getId());
+                removeOrder(sell);
+            }
+
+            // Wrap the portfolio update in a transaction
+            this.t2pAdapter.updatePortfolio(buy.getUserId(), sell.getUserId(), price * quantity, buy.getSymbol(), quantity);
+
+            System.out.println("Transaction completed");
+            System.out.println("--------------------------------");
+        } catch (Exception e) {
+            // Log the error and handle the failed transaction
+            System.err.println("Failed to execute transaction: " + e.getMessage());
+            // You might want to implement rollback logic here
         }
-        if (sell.getQuantity() == 0) {
-            System.out.println("Sell Order filled: " + sell.getId());
-            removeOrder(sell);
-        }
-
-        this.t2pAdapter.updatePortfolio(buy.getUserId(), sell.getUserId(), price * quantity, buy.getSymbol(), quantity);
-
-        System.out.println("Transaction completed");
-        System.out.println("--------------------------------");
-
     }
 
     private class BuyOrderComparator implements Comparator<Order> {
