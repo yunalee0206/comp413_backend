@@ -2,10 +2,10 @@
 
 To run the app, open the terminal and type these commands:
 
-cd into the backend directory:
-`cd backend`
+Build and run the code using maven:
+`mvn spring-boot:run`
 
-Build the code using maven:
+If that doesn't work, you may need to clean and rebuild:
 `mvn clean spring-boot:run`
 
 This runs the app at `https://localhost:8080`.
