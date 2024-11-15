@@ -1,5 +1,5 @@
 runtime: java17
-entrypoint: java -jar target/owlfinancebackend-v1.jar
+entrypoint: java -jar target/owlfinancebackend-1.0-SNAPSHOT.jar
 service: owlfinancebackend
 service_account: comp413@rice-comp-539-spring-2022.iam.gserviceaccount.com
 env_variables:
