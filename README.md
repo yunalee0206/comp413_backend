@@ -1,5 +1,7 @@
 # COMP 413 Backend
 
+**NOTE: To deploy the app, the code was modified so you no longer need to cd into the backend directory**
+
 To run the app, open the terminal and type these commands:
 
 Build and run the code using maven:
