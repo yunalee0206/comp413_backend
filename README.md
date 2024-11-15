@@ -35,3 +35,4 @@ curl -X POST "http://localhost:8080/orders?type=sell" -H 'Content-Type: applicat
 
 curl -X POST "http://localhost:8080/orders?type=sell" -H 'Content-Type: application/json' -d '{"symbol": "ABCD", "quantity": 100, "price": 100.00, "timestamp": "2023-06-15T10:30:00Z"}'
 
+Find the CURL commands for the deployed version [here](https://docs.google.com/document/d/1IbzVE1KdvjlNzx5qLsn4F_ikE0jlvBWcwUGQZISnEcQ/edit?tab=t.0).
