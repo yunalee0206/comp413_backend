@@ -18,8 +18,9 @@ public class LoadData {
             UserWithToken user = new UserWithToken();
             user.setId(1L);
             user.setUsername("TestUser");
+            user.setToken("token123");
 
-            // Save all useres
+            // Save all users
             repository.save(user);
 
             System.out.println("Database has been loaded with test users!");
