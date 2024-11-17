@@ -89,11 +89,9 @@ public class BigTableDriver {
         System.out.println("Stock found: " + found);
 
         System.out.println("Getting all stock prices");
-        ArrayList<StockPrice> allPrices = bt.getAllStockPrices();
+        String allPrices = bt.getAllStockPrices();
 
-        for(StockPrice price: allPrices) {
-            System.out.println(price.toString());
-        }
+        System.out.println(allPrices);
 
         bt.deleteStockPrice(stockPrice1);
         bt.deleteStockPrice(stockPrice2);

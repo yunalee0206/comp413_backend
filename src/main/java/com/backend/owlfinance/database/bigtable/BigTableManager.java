@@ -9,6 +9,7 @@ import com.backend.owlfinance.database.obj.DemoUser;
 import com.backend.owlfinance.database.obj.StockPrice;
 import com.backend.owlfinance.database.obj.Transaction;
 import com.backend.owlfinance.database.obj.User;
+import com.google.gson.Gson;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -331,7 +332,7 @@ public class BigTableManager {
         client.mutateRow(RowMutation.create(stockPriceTableID, rowKey).deleteRow());
     }
 
-    public ArrayList<StockPrice> getAllStockPrices() {
+    public String getAllStockPrices() {
         ArrayList<StockPrice> allPrices = new ArrayList<StockPrice>();
         Query query = Query.create(stockPriceTableID);
         for (Row row : client.readRows(query)) {
@@ -350,6 +351,8 @@ public class BigTableManager {
             StockPrice res = new StockPrice(stockSymbol,dateTime, low, high, volume, open, close);
             allPrices.add(res);
         }
-        return allPrices;
+
+        Gson gson = new Gson();
+        return gson.toJson(allPrices);
     }
 }
