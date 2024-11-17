@@ -7,11 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
-import javax.servlet.http.HttpServletRequest;
-import com.backend.owlfinance.User.User;
-import com.backend.owlfinance.User.UserWithToken;
 //import login.JwtUtil;
-import com.backend.owlfinance.User.UserResponse;
 import java.util.stream.Collectors;
 
 @RestController
@@ -23,13 +19,13 @@ public class UserController {
     @Autowired
     private JwtUtil jwtUtil;
 
-    private String getTokenFromRequest(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            return authHeader.substring(7); // Remove "Bearer " prefix
-        }
-        return null; // Or throw an exception if needed
-    }
+//    private String getTokenFromRequest(HttpServletRequest request) {
+//        String authHeader = request.getHeader("Authorization");
+//        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+//            return authHeader.substring(7); // Remove "Bearer " prefix
+//        }
+//        return null; // Or throw an exception if needed
+//    }
 
 
     // GET all users with their JWT tokens
@@ -43,7 +39,7 @@ public class UserController {
 
 
     // GET single user by username
-    @GetMapping("/users/{username}")
+    @GetMapping("/users/username/{username}")
     public ResponseEntity<UserResponse> getUserByUsername(@PathVariable String username) {
         Optional<UserWithToken> user = userRepository.findByUsername(username);
 
@@ -51,7 +47,18 @@ public class UserController {
             // Create a UserResponse object with user details and the token
             UserResponse userResponse = new UserResponse(u.getId(), u.getUsername(), u.getToken());
             return ResponseEntity.ok(userResponse);
-        }).orElseThrow(() -> new UserNotFoundException(username));
+        }).orElseThrow(() -> new UsernameNotFoundException(username));
+    }
+
+    @GetMapping("/users/token/{token}")
+    public ResponseEntity<UserResponse> getUserByToken(@PathVariable String token) {
+        Optional<UserWithToken> user = userRepository.findByToken(token);
+
+        return user.map(u -> {
+            // Create a UserResponse object with user details and the token
+            UserResponse userResponse = new UserResponse(u.getId(), u.getUsername(), u.getToken());
+            return ResponseEntity.ok(userResponse);
+        }).orElseThrow(() -> new UserTokenNotFoundException(token));
     }
 
     // POST new user with JWT generation
@@ -60,7 +67,7 @@ public class UserController {
         UserWithToken savedUser = userRepository.save(newUser);
 
         // Generate JWT token for the new user
-        String token = jwtUtil.generateToken(savedUser.getUsername());
+        String token = jwtUtil.generateToken(savedUser.getId());
         savedUser.setToken(token);
         userRepository.save(savedUser);
 
@@ -80,7 +87,7 @@ public class UserController {
         if (user.isPresent()) {
             userRepository.deleteByUsername(username);
         } else {
-            throw new UserNotFoundException("User not found with username: " + username);
+            throw new UsernameNotFoundException("User not found with username: " + username);
         }
     }
 
