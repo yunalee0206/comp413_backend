@@ -4,6 +4,6 @@ public record StockPrice(String stockSymbol, String dateTime, double low, double
 
     @Override
     public String toString() {
-        return "Stock Price Info:" + this.stockSymbol + " " + this.dateTime + " " + this.low + " " + this.low + " " + this.high + " " + this.volume + " " + this.open + " " +  this.close;
+        return "Stock Price Info:" + this.stockSymbol + " " + this.dateTime + " " + this.low + " " + this.high + " " + this.volume + " " + this.open + " " +  this.close;
     }
 }
