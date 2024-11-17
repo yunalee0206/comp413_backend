@@ -1,4 +1,4 @@
-package org.example;
+package com.backend.owlfinance.external;
 
 import java.io.BufferedReader;
 import java.io.FileWriter;
@@ -6,11 +6,16 @@ import java.io.InputStreamReader;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+
+import com.backend.owlfinance.StockApplication;
 import org.json.JSONObject;
+
+import com.backend.owlfinance.database.bigtable.BigTableManager;
+import com.backend.owlfinance.database.obj.StockPrice;
 
 public class StockFetcher {
 
-    private static final String Alpha_API = ""; // replace with your actual API key
+    private static final String Alpha_API = "4TiehBiTfflcAH4kpwXg520iqRjJ5CKk"; // replace with your actual API key
     private static final String Alpha_URL = "https://www.alphavantage.co/query";
 
     public static void getPriceMonthly(String stockCode, String targetMonth) throws Exception {
@@ -34,8 +39,10 @@ public class StockFetcher {
 
         JSONObject jsonResponse = new JSONObject(response.toString());
 
-        saveJSONToFile(jsonResponse, stockCode + "_" + targetMonth + ".json");
-        System.out.println("Successfully saved monthly data to file: " + stockCode + "_" + targetMonth + ".json");
+        addToDatabase(jsonResponse, stockCode);
+
+        //saveJSONToFile(jsonResponse, stockCode + "_" + targetMonth + ".json");
+        //System.out.println("Successfully saved monthly data to file: " + stockCode + "_" + targetMonth + ".json");
     }
 
     public static void getPriceDaily(String stockCode, String targetDate) throws Exception {
@@ -74,6 +81,8 @@ public class StockFetcher {
         // Extract data for the target date
         JSONObject targetDateData = new JSONObject();
 
+
+
         for (String timestamp : timeSeries.keySet()) {
             if (timestamp.startsWith(targetDate)) {
                 targetDateData.put(timestamp, timeSeries.getJSONObject(timestamp));
@@ -85,9 +94,11 @@ public class StockFetcher {
             return;
         }
 
+        addToDatabase(targetDateData, stockCode);
+
         // Save the data to a file
-        saveJSONToFile(targetDateData, stockCode + "_" + targetDate + ".json");
-        System.out.println("Successfully saved daily data to file: " + stockCode + "_" + targetDate + ".json");
+        //saveJSONToFile(targetDateData, stockCode + "_" + targetDate + ".json");
+        //System.out.println("Successfully saved daily data to file: " + stockCode + "_" + targetDate + ".json");
     }
 
     public static void saveJSONToFile(JSONObject jsonObject, String fileName) {
@@ -99,17 +110,54 @@ public class StockFetcher {
         }
     }
 
+    public static void addToDatabase(JSONObject jsonObject, String stockSymbol) throws IOException {
+        String projectId = "rice-comp-539-spring-2022";
+        String instanceId = "comp-539-bigtable";
+        BigTableManager bt = new BigTableManager(projectId, instanceId);
+
+
+        try {
+            // Iterate through each key in the JSON object
+            for (String dateTime : jsonObject.keySet()) {
+                JSONObject stockData = jsonObject.getJSONObject(dateTime);
+
+                // Extract fields for the StockPrice object
+                double low = stockData.getDouble("3. low");
+                double high = stockData.getDouble("2. high");
+                int volume = stockData.getInt("5. volume");
+                double open = stockData.getDouble("1. open");
+                double close = stockData.getDouble("4. close");
+
+                // Create StockPrice object
+                StockPrice stockPrice = new StockPrice(stockSymbol, dateTime, low, high, volume, open, close);
+
+
+                // Save to database
+                String rowkey = bt.createStockPrice(stockPrice);
+                System.out.println("Successfully added to database: " + bt.getStockPrice(rowkey).toString());
+                bt.deleteStockPrice(rowkey);
+            }
+        } catch (Exception e) {
+            System.err.println("Error while processing JSON data: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+
+    }
+
+
+
     public static void main(String[] args) {
         try {
             String stockCode = "AAPL";
 
             // Fetch and save minute-by-minute data for a specific date
-            String targetDate = "2023-10-31"; // Replace with your target date in YYYY-MM-DD format
+            String targetDate = "2024-11-15"; // Replace with your target date in YYYY-MM-DD format
             getPriceDaily(stockCode, targetDate);
 
             // Fetch and save minute-by-minute data for a specific month
-            String targetMonth = "2023-10"; // Replace with your target month in YYYY-MM format
-            getPriceMonthly(stockCode, targetMonth);
+            //String targetMonth = "2023-10"; // Replace with your target month in YYYY-MM format
+            //getPriceMonthly(stockCode, targetMonth);
 
         } catch (Exception e) {
             e.printStackTrace();
