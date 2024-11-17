@@ -163,7 +163,7 @@
                 <artifactId>appengine-maven-plugin</artifactId>
                 <version>2.4.4</version>
                 <configuration>
-                    <deploy.projectId>placeholder-id</deploy.projectId>
+                    <deploy.projectId>rice-comp-539-spring-2022</deploy.projectId>
                     <deploy.version>1.0.11</deploy.version>
                 </configuration>
             </plugin>
