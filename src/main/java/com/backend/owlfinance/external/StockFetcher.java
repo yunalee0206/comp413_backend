@@ -135,6 +135,10 @@ public class StockFetcher {
                 // Save to database
                 String rowkey = bt.createStockPrice(stockPrice);
                 System.out.println("Successfully added to database: " + bt.getStockPrice(rowkey).toString());
+
+                /*
+                delete this line to keep the data in the database. This is just for testing.
+                 */
                 bt.deleteStockPrice(rowkey);
             }
         } catch (Exception e) {
