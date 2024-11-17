@@ -46,6 +46,9 @@ class StockController {
   
   @GetMapping("/stocks/{ticker}")
   Stock one(@PathVariable String ticker) {
+
+    // Get timestamp of the current time
+    // Get
     
     return repository.findById(ticker)
       .orElseThrow(() -> new StockNotFoundException(ticker));
