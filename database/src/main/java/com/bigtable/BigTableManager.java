@@ -330,5 +330,4 @@ public class BigTableManager {
         if (row == null) return;
         client.mutateRow(RowMutation.create(stockPriceTableID, rowKey).deleteRow());
     }
-
 }
