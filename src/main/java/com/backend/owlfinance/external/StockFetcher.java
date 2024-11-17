@@ -15,7 +15,7 @@ import com.backend.owlfinance.database.obj.StockPrice;
 
 public class StockFetcher {
 
-    private static final String Alpha_API = "4TiehBiTfflcAH4kpwXg520iqRjJ5CKk"; // replace with your actual API key
+    private static final String Alpha_API = ""; // replace with your actual API key
     private static final String Alpha_URL = "https://www.alphavantage.co/query";
 
     public static void getPriceMonthly(String stockCode, String targetMonth) throws Exception {
