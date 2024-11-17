@@ -244,6 +244,11 @@ public class BigTableManager {
     public Transaction getTransaction(String rowKey) {
         Row row = client.readRow(transactionsTableID, rowKey);
 
+        if (row == null) {
+            System.out.println("Transaction at: \"" + rowKey + "\" not found");
+            return null;
+        }
+
         return createTransactionRecord(row);
     }
 
