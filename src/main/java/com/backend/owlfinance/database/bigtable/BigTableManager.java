@@ -315,7 +315,6 @@ public class BigTableManager {
         String highTemp = row.getCells("external_stocks", "high").get(0).getValue().toStringUtf8();
         double high = Double.parseDouble(highTemp);
         String volumeTemp = row.getCells("external_stocks", "volume").get(0).getValue().toStringUtf8();
-        System.out.println(volumeTemp);
         int volume = Integer.parseInt(volumeTemp);
         String openTemp = row.getCells("external_stocks", "open").get(0).getValue().toStringUtf8();
         double open = Double.parseDouble(openTemp);
@@ -332,4 +331,25 @@ public class BigTableManager {
         client.mutateRow(RowMutation.create(stockPriceTableID, rowKey).deleteRow());
     }
 
+    public ArrayList<StockPrice> getAllStockPrices() {
+        ArrayList<StockPrice> allPrices = new ArrayList<StockPrice>();
+        Query query = Query.create(stockPriceTableID);
+        for (Row row : client.readRows(query)) {
+            String stockSymbol = row.getCells("external_stocks", "stock_symbol").get(0).getValue().toStringUtf8();
+            String dateTime = row.getCells("external_stocks", "date/time").get(0).getValue().toStringUtf8();
+            String lowTemp = row.getCells("external_stocks", "low").get(0).getValue().toStringUtf8();
+            double low = Double.parseDouble(lowTemp);
+            String highTemp = row.getCells("external_stocks", "high").get(0).getValue().toStringUtf8();
+            double high = Double.parseDouble(highTemp);
+            String volumeTemp = row.getCells("external_stocks", "volume").get(0).getValue().toStringUtf8();
+            int volume = Integer.parseInt(volumeTemp);
+            String openTemp = row.getCells("external_stocks", "open").get(0).getValue().toStringUtf8();
+            double open = Double.parseDouble(openTemp);
+            String closeTemp = row.getCells("external_stocks", "close").get(0).getValue().toStringUtf8();
+            double close = Double.parseDouble(closeTemp);
+            StockPrice res = new StockPrice(stockSymbol,dateTime, low, high, volume, open, close);
+            allPrices.add(res);
+        }
+        return allPrices;
+    }
 }

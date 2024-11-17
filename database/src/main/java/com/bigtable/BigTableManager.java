@@ -241,7 +241,6 @@ public class BigTableManager {
         int numShares = Integer.parseInt(row.getCells("transaction_info", "num_shares").get(0).getValue().toStringUtf8());
         double sharePrice = Double.parseDouble(row.getCells("transaction_info", "share_price").get(0).getValue().toStringUtf8());
         String uuid = row.getCells("uuid", "uuid").get(0).getValue().toStringUtf8();
-
         return new Transaction(username, transactionType, stockSymbol, numShares, sharePrice, uuid);
     }
 

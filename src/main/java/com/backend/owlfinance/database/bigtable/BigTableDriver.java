@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,48 +29,6 @@ public class BigTableDriver {
         BigTableManager bt = new BigTableManager(projectId, instanceId);
 
         testUserMethods(bt);
-        /* OLD USER DEMO CODE. DEPRECATE SOON.
-        System.out.println("Create 3 users");
-
-        bt.createUserDemo(new DemoUser("anthony413", "orange", timestamp()));
-        bt.createUserDemo(new DemoUser("rohith413", "blue", timestamp()));
-        bt.createUserDemo(new DemoUser("alexei413", "red", timestamp()));
-
-        System.out.println("Alexei's Color: " + bt.getUserColorDemo("alexei413"));
-
-        System.out.println("\nChange Alexei's Color");
-        bt.updateColorDemo("alexei413", "yellow");
-        bt.updateColorDemo("alexei539", "yellow");
-        System.out.println("Alexei's Color: " + bt.getUserColorDemo("alexei413"));
-
-        System.out.println("alexei413 color: " + bt.getUserColorDemo("alexei413"));
-        System.out.println("alexei539 color: " + bt.getUserColorDemo("alexei539"));
-
-        bt.createUserDemo(new DemoUser("alexei539", "red", timestamp()));
-        System.out.println("\nCurrent 'User' column family (table)");
-        for (DemoUser u: bt.getUsersDemo()) {
-            System.out.println(u);
-        }
-
-        System.out.println("\nDeleting alexei413:");
-        bt.deleteUserDemo("alexei413");
-        for (DemoUser u: bt.getUsersDemo()) {
-            System.out.println(u);
-        }
-
-        System.out.println("\nDeleting all users now:");
-        for (DemoUser u: bt.getUsersDemo()) {
-            System.out.println("Deleting " + u.username());
-            bt.deleteUserDemo(u.username());
-        }
-
-        System.out.println("\nAnything left in the table?");
-        for (DemoUser u: bt.getUsersDemo()) {
-            System.out.println(u);
-        }
-        System.out.println("\nNope!");
-        */
-
 
         // TESTING TRANSACTIONS TABLE
         // TODO: eventually want to make these actual test cases
@@ -113,16 +72,34 @@ public class BigTableDriver {
 
         // TESTING STOCK PRICE DATA
         System.out.println("\nAdding new stock price");
-        String stockPrice = bt.createStockPrice(new StockPrice("AAPL", "2024-11-11T15:30:00Z", 149.25, 153.50, 12000000, 150.00, 152.75));
+        String stockPrice1 = bt.createStockPrice(new StockPrice("AAPL", "2024-11-11T15:30:00Z", 149.25, 153.50, 12000000, 150.00, 152.75));
+        System.out.println("Stock price added:" + stockPrice1);
 
-        System.out.println("\n" + "Row key of stock price added" + stockPrice);
-        String stockRowKey = "AAPL" + "#" + "2024-11-11T15:30:00Z";
-        System.out.println("\n" + "Getting stock price with row key: " + stockRowKey);
-        StockPrice found = bt.getStockPrice(stockRowKey);
+        String stockPrice2 = bt.createStockPrice(new StockPrice("AAPL", "2024-11-11T18:30:00Z", 149.25, 200.50, 12000000, 150.00, 152.75));
+        System.out.println("Stock price added (duplicate for different time):" + stockPrice2);
+
+        String stockPrice3 = bt.createStockPrice(new StockPrice("AMZN", "2024-12-11T15:30:00Z", 149.25, 200.50, 12000000, 150.00, 152.75));
+        System.out.println("Stock price added:" + stockPrice3);
+
+        String stockPrice4 = bt.createStockPrice(new StockPrice("F", "2024-12-11T15:30:00Z", 149.25, 200.50, 1000000, 150.00, 152.75));
+        System.out.println("Stock price added:" + stockPrice4);
+
+        System.out.println("\n" + "Getting stock price with row key: " + stockPrice1);
+        StockPrice found = bt.getStockPrice(stockPrice1);
         System.out.println("Stock found: " + found);
 
-        bt.deleteStockPrice(stockPrice);
-        System.out.println("\nDeleting stock price");
+        System.out.println("Getting all stock prices");
+        ArrayList<StockPrice> allPrices = bt.getAllStockPrices();
+
+        for(StockPrice price: allPrices) {
+            System.out.println(price.toString());
+        }
+
+        bt.deleteStockPrice(stockPrice1);
+        bt.deleteStockPrice(stockPrice2);
+        bt.deleteStockPrice(stockPrice3);
+        bt.deleteStockPrice(stockPrice4);
+        System.out.println("\nDeleting stock prices");
 
         bt.close();
     }
