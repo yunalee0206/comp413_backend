@@ -1,58 +1,59 @@
-package com.backend.owlfinance;
+package com.backend.owlfinance.Transaction;
 
 import java.util.PriorityQueue;
 import java.util.Comparator;
+import com.backend.owlfinance.database.bigtable.BigTableManager;
+import com.backend.owlfinance.database.obj.StockPrice;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 class OrderBook {
-    private OrderOperation orderOperation;
-    private Transact2PortfolioAdapter t2pAdapter;
+    private String symbol;
+    // private Transact2PortfolioAdapter t2pAdapter;
     private PriorityQueue<Order> buyOrders;
     private PriorityQueue<Order> sellOrders;
+    private BigTableManager database;
+    private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:00'Z'");
 
-
-    public OrderBook(OrderOperation orderOperation, Transact2PortfolioAdapter t2pAdapter) {
-        this.orderOperation = orderOperation;
-        this.t2pAdapter = t2pAdapter;
-        buyOrders = new PriorityQueue<>(new BuyOrderComparator());
-        sellOrders = new PriorityQueue<>(new SellOrderComparator());
+    public OrderBook(String symbol, BigTableManager database) {
+        this.symbol = symbol;
+        this.database = database;
+        // this.t2pAdapter = t2pAdapter;
+        this.buyOrders = new PriorityQueue<>(new BuyOrderComparator());
+        this.sellOrders = new PriorityQueue<>(new SellOrderComparator());
     }
 
     public Order addOrder(Order order) {
-        Order o = null;
         if (order.getType().equals("buy")) {
-            boolean isBuyerVerified = t2pAdapter.checkBalance(order.getUserId(), order.getPrice() * order.getQuantity());
+            boolean isBuyerVerified = checkBalance(order.getUsername(), order.getPrice() * order.getQuantity());
             if (!isBuyerVerified) {
                 System.out.println("Failure to add buy order: Insufficient balance");
                 return null;
             }
-            o = orderOperation.updateOrder(order);
-            buyOrders.add(o);
-            System.out.println("Buy Order addded: " + o.getId() + " Ticker: " + o.getSymbol() + " Price: " + o.getPrice() + " Quantity: " + o.getQuantity());
+            buyOrders.add(order);
+            System.out.println("Buy Order addded: " + order.getId() + " Ticker: " + order.getSymbol() + " Price: " + order.getPrice() + " Quantity: " + order.getQuantity());
 
         } else if (order.getType().equals("sell")) {
-            boolean isSellerVerified = t2pAdapter.checkShare(order.getUserId(), order.getSymbol(), order.getQuantity());
+            boolean isSellerVerified = checkShare(order.getUsername(), order.getSymbol(), order.getQuantity());
             if (!isSellerVerified) {
                 System.out.println("Failure to add sell order: Insufficient shares");
                 return null;
             }
-            o = orderOperation.updateOrder(order);
-            sellOrders.add(o);
-            System.out.println("Sell Order addded: " + o.getId() + " Ticker: " + o.getSymbol() + " Price: " + o.getPrice() + " Quantity: " + o.getQuantity());
+            sellOrders.add(order);
+            System.out.println("Sell Order addded: " + order.getId() + " Ticker: " + order.getSymbol() + " Price: " + order.getPrice() + " Quantity: " + order.getQuantity());
 
         }
-        return o;
+        return order;
     }
 
     public Order updateOrder(Long orderId, Order order) {
-        Order o = orderOperation.findOrder(orderId);
-        order = orderOperation.updateOrder(order);
-        if (o.getType().equals("buy")) {
-            buyOrders.remove(o);
+        if (order.getType().equals("buy")) {
+            buyOrders.remove(order);
             buyOrders.add(order);
             System.out.println("Buy Order updated: " + order.getId() + " Ticker: " + order.getSymbol() + " Price: " + order.getPrice() + " Quantity: " + order.getQuantity());
-        } else if (o.getType().equals("sell")) {
-            sellOrders.remove(o);
+        } else if (order.getType().equals("sell")) {
+            sellOrders.remove(order);
             sellOrders.add(order);
             System.out.println("Sell Order updated: " + order.getId() + " Ticker: " + order.getSymbol() + " Price: " + order.getPrice() + " Quantity: " + order.getQuantity());
         }
@@ -61,13 +62,27 @@ class OrderBook {
 
     public void matchOrders() {
 
-        while (!buyOrders.isEmpty() && !sellOrders.isEmpty()) {
-            Order buyOrder = buyOrders.peek();
-            Order sellOrder = sellOrders.peek();
-            int price;
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime previousBusinessDay = getPreviousBusinessDay(now);
+        String currentTimestamp = previousBusinessDay.format(formatter);
+        String rowKey = this.symbol + "#" + currentTimestamp;
+        StockPrice stockPrice = database.getStockPrice(rowKey);
 
-            if (buyOrder.getPrice() >= sellOrder.getPrice()) {
-                executeTransaction(buyOrder, sellOrder);
+        while (!buyOrders.isEmpty()) {
+            Order buyOrder = buyOrders.peek();
+            if (buyOrder.getPrice() > stockPrice.low()) {
+                buyOrder = buyOrders.poll();
+                executeBuy(buyOrder);
+            } else {
+                break;
+            }
+        }
+
+        while (!sellOrders.isEmpty()) {
+            Order sellOrder = sellOrders.peek();
+            if (sellOrder.getPrice() < stockPrice.high()) {
+                sellOrder = sellOrders.poll();
+                executeSell(sellOrder);
             } else {
                 break;
             }
@@ -75,36 +90,41 @@ class OrderBook {
     }
 
     public void removeOrder(Order order) {
-        orderOperation.deleteOrder(order);
         if (order.getType().equals("buy")) {
             buyOrders.remove(order);
         } else if (order.getType().equals("sell")) {
             sellOrders.remove(order);
         }
-
     }
 
-    // TODO: Trasaction logic
-    private void executeTransaction(Order buy, Order sell) {
-        double price = buy.getTimestamp().compareTo(sell.getTimestamp()) > 0 ? sell.getPrice() : buy.getPrice();
-        int quantity = Math.min(buy.getQuantity(), sell.getQuantity());
-    
-        buy.setQuantity(buy.getQuantity() - quantity);
-        sell.setQuantity(sell.getQuantity() - quantity);
-        if (buy.getQuantity() == 0) {
-            System.out.println("Buy Order filled: " + buy.getId());
-            removeOrder(buy);
+    private boolean checkBalance(String username, double amount) {
+        double balance = database.getUserCashBalance(username);
+        return balance >= amount;
+    }
+
+    private boolean checkShare(String username, String ticker, int amount) {
+        // int shares = database.getUserStocks(username, ticker);
+        // return shares >= amount;
+        return true;
+    }
+
+    private void executeBuy(Order buy) {
+        // t2pAdapter.buy(buy.getUsername(), buy.getPrice(), buy.getSymbol(), buy.getQuantity());
+    }
+
+    private void executeSell(Order sell) {
+        // t2pAdapter.sell(sell.getUsername(), sell.getPrice(), sell.getSymbol(), sell.getQuantity());
+    }
+
+    private LocalDateTime getPreviousBusinessDay(LocalDateTime dateTime) {
+        switch (dateTime.getDayOfWeek()) {
+            case MONDAY:
+                return dateTime.minusDays(3); // Roll back to Friday
+            case SUNDAY:
+                return dateTime.minusDays(2); // Roll back to Friday
+            default:
+                return dateTime.minusDays(1); // Roll back to the previous day
         }
-        if (sell.getQuantity() == 0) {
-            System.out.println("Sell Order filled: " + sell.getId());
-            removeOrder(sell);
-        }
-
-        this.t2pAdapter.updatePortfolio(buy.getUserId(), sell.getUserId(), price * quantity, buy.getSymbol(), quantity);
-
-        System.out.println("Transaction completed");
-        System.out.println("--------------------------------");
-
     }
 
     private class BuyOrderComparator implements Comparator<Order> {

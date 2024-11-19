@@ -1,20 +1,16 @@
-package com.backend.owlfinance;
+package com.backend.owlfinance.Transaction;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
+// import jakarta.persistence.Entity;
+// import jakarta.persistence.Id;
+// import jakarta.persistence.Table;
+// import jakarta.persistence.GeneratedValue;
+// import jakarta.persistence.GenerationType;
 import java.util.Date;
 
-
-@Entity
-@Table(name = "\"order\"")
 public class Order {
 
-    private @Id
-    @GeneratedValue Long id;
-    private Long userId;    
+    private Long id;
+    private String username;    
     private String symbol;
     private int quantity;
     private double price;
@@ -30,12 +26,12 @@ public class Order {
         this.id = id;
     }
 
-    public Long getUserId() {
-        return userId;
+    public String getUsername() {
+        return username;
     }
 
-    public void setUserId(Long userId) {
-        this.userId = userId;
+    public void setUsername(String userId) {
+        this.username = userId;
     }
 
     public String getSymbol() {
