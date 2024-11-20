@@ -20,8 +20,8 @@ public class PortfolioController {
     this.jwtUtil = jwtUtil;
   }
 
-  @GetMapping
-  List<Portfolio> all() {
+  @GetMapping("/all")
+  List<Portfolio> getAllPortfolios() {
     return repository.findAll();
   }
 
