@@ -14,7 +14,7 @@ public class DatabaseLoader {
     CommandLineRunner initPortDatabase(PortfolioRepository repository) {
         return args -> {
             // Create first portfolio
-            Portfolio portfolio1 = new Portfolio();
+            Portfolio portfolio1 = new Portfolio("user1");
             portfolio1.setUserId(1L);
             portfolio1.setBalance(10000.0);
             Map<String, Integer> stocks1 = new HashMap<>();
@@ -23,7 +23,7 @@ public class DatabaseLoader {
             portfolio1.setStocks(stocks1);
 
             // Create second portfolio
-            Portfolio portfolio2 = new Portfolio();
+            Portfolio portfolio2 = new Portfolio("user2");
             portfolio2.setUserId(2L);
             portfolio2.setBalance(25000.0);
             Map<String, Integer> stocks2 = new HashMap<>();
@@ -32,7 +32,7 @@ public class DatabaseLoader {
             portfolio2.setStocks(stocks2);
 
             // Create third portfolio
-            Portfolio portfolio3 = new Portfolio();
+            Portfolio portfolio3 = new Portfolio("user3");
             portfolio3.setUserId(3L);
             portfolio3.setBalance(5000.0);
             Map<String, Integer> stocks3 = new HashMap<>();

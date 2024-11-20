@@ -3,7 +3,8 @@ package com.backend.owlfinance.Portfolio;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
-
+import jakarta.servlet.http.HttpServletRequest;
+import com.backend.owlfinance.User.JwtUtil;
 import java.util.List;
 import java.util.Map;
 
@@ -12,9 +13,11 @@ import java.util.Map;
 public class PortfolioController {
 
   private final PortfolioRepository repository;
+  private final JwtUtil jwtUtil;
 
-  PortfolioController(PortfolioRepository repository) {
+  PortfolioController(PortfolioRepository repository, JwtUtil jwtUtil) {
     this.repository = repository;
+    this.jwtUtil = jwtUtil;
   }
 
   @GetMapping
@@ -23,34 +26,36 @@ public class PortfolioController {
   }
 
   @GetMapping("/checkbalance")
-  public Boolean checkBalance(@RequestParam(value = "userId") Long userId,
+  public Boolean checkBalance(HttpServletRequest request,
                        @RequestParam(value = "amount") Double amount) {
-    Portfolio portfolio = repository.findByUserId(userId)
-        .orElseThrow(() -> new PortfolioNotFoundException(userId));
-    System.out.println("Checking balance for user " + userId + " amount " + amount);
+    String username = jwtUtil.extractUsernameFromHeader(request);
+    Portfolio portfolio = repository.findByUsername(username)
+        .orElseThrow(() -> new PortfolioNotFoundException(username));
+    System.out.println("Checking balance for user " + username + " amount " + amount);
     return portfolio.getBalance() >= amount;
   }
 
   @GetMapping("/checkshare")
-  public Boolean checkShare(@RequestParam(value = "userId") Long userId,
+  public Boolean checkShare(HttpServletRequest request,
                      @RequestParam(value = "ticker") String ticker,
                      @RequestParam(value = "amount") Integer amount) {
-    Portfolio portfolio = repository.findByUserId(userId)
-        .orElseThrow(() -> new PortfolioNotFoundException(userId));
-    System.out.println("Checking share for user " + userId + " ticker " + ticker + " amount " + amount);
+    String username = jwtUtil.extractUsernameFromHeader(request);
+    Portfolio portfolio = repository.findByUsername(username)
+        .orElseThrow(() -> new PortfolioNotFoundException(username));
+    System.out.println("Checking share for user " + username + " ticker " + ticker + " amount " + amount);
     return portfolio.getStocks().getOrDefault(ticker, 0) >= amount;
   }
 
   @PutMapping("/update")
-  public String update(@RequestParam(value = "buyerId") Long buyerId,
-                @RequestParam(value = "sellerId") Long sellerId,
+  public String update(@RequestParam(value = "buyerUsername") String buyerUsername,
+                @RequestParam(value = "sellerUsername") String sellerUsername,
                 @RequestParam(value = "amount") Double amount,
                 @RequestParam(value = "ticker") String ticker,
                 @RequestParam(value = "shares") Integer shares) {
-    Portfolio buyerPortfolio = repository.findByUserId(buyerId)
-        .orElseThrow(() -> new PortfolioNotFoundException(buyerId));
-    Portfolio sellerPortfolio = repository.findByUserId(sellerId)
-        .orElseThrow(() -> new PortfolioNotFoundException(sellerId));
+    Portfolio buyerPortfolio = repository.findByUsername(buyerUsername)
+        .orElseThrow(() -> new PortfolioNotFoundException(buyerUsername));
+    Portfolio sellerPortfolio = repository.findByUsername(sellerUsername)
+        .orElseThrow(() -> new PortfolioNotFoundException(sellerUsername));
     buyerPortfolio.setBalance(buyerPortfolio.getBalance() - amount);
     sellerPortfolio.setBalance(sellerPortfolio.getBalance() + amount);
     buyerPortfolio.getStocks().merge(ticker, shares, Integer::sum);
@@ -60,47 +65,52 @@ public class PortfolioController {
     return "Success";
   }
 
-  @GetMapping("/{userId}")
-  ResponseEntity<Portfolio> getPortfolioByUserId(@PathVariable Long userId) {
-    Portfolio portfolio = repository.findByUserId(userId)
-        .orElseThrow(() -> new PortfolioNotFoundException(userId));
+  @GetMapping
+  ResponseEntity<Portfolio> getPortfolio(HttpServletRequest request) {
+    String username = jwtUtil.extractUsernameFromHeader(request);
+    Portfolio portfolio = repository.findByUsername(username)
+        .orElseThrow(() -> new PortfolioNotFoundException(username));
     return ResponseEntity.ok(portfolio);
   }
 
-  @GetMapping("/{userId}/balance")
-  ResponseEntity<Double> getUserBalance(@PathVariable Long userId) {
-    Portfolio portfolio = repository.findByUserId(userId)
-        .orElseThrow(() -> new PortfolioNotFoundException(userId));
+  @GetMapping("/balance")
+  ResponseEntity<Double> getUserBalance(HttpServletRequest request) {
+    String username = jwtUtil.extractUsernameFromHeader(request);
+    Portfolio portfolio = repository.findByUsername(username)
+        .orElseThrow(() -> new PortfolioNotFoundException(username));
     return ResponseEntity.ok(portfolio.getBalance());
   }
 
-  @GetMapping("/{userId}/stocks")
-  ResponseEntity<Map<String, Integer>> getUserStocks(@PathVariable Long userId) {
-    Portfolio portfolio = repository.findByUserId(userId)
-        .orElseThrow(() -> new PortfolioNotFoundException(userId));
+  @GetMapping("/stocks")
+  ResponseEntity<Map<String, Integer>> getUserStocks(HttpServletRequest request) {
+    String username = jwtUtil.extractUsernameFromHeader(request);
+    Portfolio portfolio = repository.findByUsername(username)
+        .orElseThrow(() -> new PortfolioNotFoundException(username));
     return ResponseEntity.ok(portfolio.getStocks());
   }
 
-  @PostMapping("/{userId}/deposit")
-  ResponseEntity<Portfolio> deposit(@PathVariable Long userId, @RequestBody AmountRequest request) {
-    Double amount = request.getAmount();
+  @PostMapping("/deposit")
+  ResponseEntity<Portfolio> deposit(HttpServletRequest request, @RequestBody AmountRequest amountRequest) {
+    String username = jwtUtil.extractUsernameFromHeader(request);
+    Double amount = amountRequest.getAmount();
     if (amount == null || amount <= 0) {
         throw new InvalidAmountException("Deposit amount must be positive");
     }
-    Portfolio portfolio = repository.findByUserId(userId)
-        .orElseThrow(() -> new PortfolioNotFoundException(userId));
+    Portfolio portfolio = repository.findByUsername(username)
+        .orElseThrow(() -> new PortfolioNotFoundException(username));
     portfolio.setBalance(portfolio.getBalance() + amount);
     return ResponseEntity.ok(repository.save(portfolio));
   }
 
-  @PostMapping("/{userId}/withdraw")
-  ResponseEntity<Portfolio> withdraw(@PathVariable Long userId, @RequestBody AmountRequest request) {
-    Double amount = request.getAmount();
+  @PostMapping("/withdraw")
+  ResponseEntity<Portfolio> withdraw(HttpServletRequest request, @RequestBody AmountRequest amountRequest) {
+    String username = jwtUtil.extractUsernameFromHeader(request);
+    Double amount = amountRequest.getAmount();
     if (amount == null || amount <= 0) {
         throw new InvalidAmountException("Withdrawal amount must be positive");
     }
-    Portfolio portfolio = repository.findByUserId(userId)
-        .orElseThrow(() -> new PortfolioNotFoundException(userId));
+    Portfolio portfolio = repository.findByUsername(username)
+        .orElseThrow(() -> new PortfolioNotFoundException(username));
     if (portfolio.getBalance() >= amount) {
         portfolio.setBalance(portfolio.getBalance() - amount);
     } else {
@@ -109,16 +119,11 @@ public class PortfolioController {
     return ResponseEntity.ok(repository.save(portfolio));
   }
 
-  @PostMapping("/{userId}/stocks/add")
-  ResponseEntity<Portfolio> addStocks(@PathVariable Long userId, @RequestBody Map<String, Integer> stocksToAdd) {
-    // Example JSON body:
-    // {
-    //   "AAPL": 10,
-    //   "GOOGL": 5,
-    //   "MSFT": 8
-    // }
-    Portfolio portfolio = repository.findByUserId(userId)
-        .orElseThrow(() -> new PortfolioNotFoundException(userId));
+  @PostMapping("/stocks/add")
+  ResponseEntity<Portfolio> addStocks(HttpServletRequest request, @RequestBody Map<String, Integer> stocksToAdd) {
+    String username = jwtUtil.extractUsernameFromHeader(request);
+    Portfolio portfolio = repository.findByUsername(username)
+        .orElseThrow(() -> new PortfolioNotFoundException(username));
     
     Map<String, Integer> currentStocks = portfolio.getStocks();
     
@@ -137,15 +142,11 @@ public class PortfolioController {
     return ResponseEntity.ok(repository.save(portfolio));
   }
 
-  @PostMapping("/{userId}/stocks/remove")
-  ResponseEntity<Portfolio> removeStocks(@PathVariable Long userId, @RequestBody Map<String, Integer> stocksToRemove) {
-    // Example JSON body:
-    // {
-    //   "AAPL": 3,
-    //   "GOOGL": 2
-    // }
-    Portfolio portfolio = repository.findByUserId(userId)
-        .orElseThrow(() -> new PortfolioNotFoundException(userId));
+  @PostMapping("/stocks/remove")
+  ResponseEntity<Portfolio> removeStocks(HttpServletRequest request, @RequestBody Map<String, Integer> stocksToRemove) {
+    String username = jwtUtil.extractUsernameFromHeader(request);
+    Portfolio portfolio = repository.findByUsername(username)
+        .orElseThrow(() -> new PortfolioNotFoundException(username));
     
     Map<String, Integer> currentStocks = portfolio.getStocks();
     

@@ -17,10 +17,18 @@ public class Portfolio {
   private Map<String, Integer> stocks;
 
   private Long userId;
+  private String username;
 
   public Portfolio() {
     this.balance = 0.0;
     this.stocks = new HashMap<>();
+    this.username = "";
+  }
+
+  public Portfolio(String username) {
+    this.balance = 0.0;
+    this.stocks = new HashMap<>();
+    this.username = username;
   }
 
   public Long getId() {
@@ -49,5 +57,13 @@ public class Portfolio {
 
   public void setUserId(Long userId) {
     this.userId = userId;
+  }
+
+  public String getUsername() {
+    return this.username;
+  }
+
+  public void setUsername(String username) {
+    this.username = username;
   }
 }
