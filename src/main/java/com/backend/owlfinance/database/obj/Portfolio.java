@@ -1,6 +1,6 @@
 package com.backend.owlfinance.database.obj;
 
-public record Transaction(String username, String stockSymbol, int numShares, double sharePrice, String dateTime) {
+public record Portfolio(String username, String stockSymbol, int numShares, double sharePrice, String dateTime) {
 
     @Override
     public String toString() {
