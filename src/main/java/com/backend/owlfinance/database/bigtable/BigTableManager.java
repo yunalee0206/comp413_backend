@@ -413,9 +413,9 @@ public class BigTableManager {
 
         RowMutation newPortfolioMutation = RowMutation.create(portfolioTableID, rowKey)
                 .setCell("user", "username", username)
-                .setCell("portfolio", "stock_symbol", transaction.stockSymbol())
-                .setCell("portfolio", "num_shares", Integer.toString(transaction.numShares()))
-                .setCell("portfolio", "share_price", Double.toString(transaction.sharePrice()))
+                .setCell("portfolio", "stock_symbol", portfolio.stockSymbol())
+                .setCell("portfolio", "num_shares", Integer.toString(portfolio.numShares()))
+                .setCell("portfolio", "share_price", Double.toString(portfolio.sharePrice()))
                 .setCell("portfolio", "timestamp", portfolio.dateTime());
         client.mutateRow(newPortfolioMutation);
         System.out.println("Successfully wrote new portfolio \"" + rowKey + "\" to DB.");
