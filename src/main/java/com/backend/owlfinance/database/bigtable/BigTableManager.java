@@ -9,6 +9,7 @@ import com.backend.owlfinance.database.obj.DemoUser;
 import com.backend.owlfinance.database.obj.StockPrice;
 import com.backend.owlfinance.database.obj.Transaction;
 import com.backend.owlfinance.database.obj.User;
+import com.backend.owlfinance.database.obj.Portfolio;
 import com.google.gson.Gson;
 
 import java.io.IOException;
@@ -17,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 public class BigTableManager {
 
@@ -25,6 +27,7 @@ public class BigTableManager {
     private final String userTableID = "users";
     private final String transactionsTableID = "transactions";
     private final String stockPriceTableID = "stock-prices";
+    private final String portfolioTableID = "portfolios";
 
     private final BigtableDataClient client;
     private final Random RANDOM = new Random(0xC413 + Instant.now().getEpochSecond());
@@ -354,5 +357,69 @@ public class BigTableManager {
 
         Gson gson = new Gson();
         return gson.toJson(allPrices);
+    }
+
+    /* Portfolios */
+    private Portfolio createPortfolioRecord(Row row) {
+        String username =  row.getCells("user", "username").get(0).getValue().toStringUtf8();
+        String stockSymbol = row.getCells("portfolio", "stock_symbol").get(0).getValue().toStringUtf8();
+        int numShares = Integer.parseInt(row.getCells("portfolio", "num_shares").get(0).getValue().toStringUtf8());
+        double sharePrice = Double.parseDouble(row.getCells("portfolio", "share_price").get(0).getValue().toStringUtf8());
+        String dateTime = row.getCells("portfolio", "timestamp").get(0).getValue().toStringUtf8();
+
+        return new Portfolio(username, stockSymbol, numShares, sharePrice, dateTime);
+    }
+
+    public Portfolio getPortfolioRow(String rowKey) {
+        Row row = client.readRow(portfolioTableID, rowKey);
+
+        if (row == null) {
+            System.out.println("Portfolio at: \"" + rowKey + "\" not found");
+            return null;
+        }
+
+        return createPortfolioRecord(row);
+    }
+
+    public List<Portfolio> getPortfolioRowsByUser(String username) {
+        String rowKeyPrefix = username + "#";
+        Query query = Query.create(portfolioTableID).prefix(rowKeyPrefix);
+        List<Portfolio> portfolioRows = new ArrayList<>();
+
+        client.readRows(query).forEach(row -> {
+            portfolioRows.add(createPortfolioRecord(row));
+        });
+
+        return portfolioRows;
+    }
+
+    public List<Portfolio> getPortfolioRowsByUserAndStock(String username, String stockSymbol) {
+        String rowKeyPrefix = username + "#" + stockSymbol + "#";
+        Query query = Query.create(portfolioTableID).prefix(rowKeyPrefix);
+        List<Portfolio> portfolioRows = new ArrayList<>();
+
+        client.readRows(query).forEach(row -> {
+            portfolioRows.add(createPortfolioRecord(row));
+        });
+
+        return portfolioRows;
+    }
+
+    public String createPortfolioRow(Portfolio portfolio) {
+        String username = portfolio.username();
+        String stockSymbol = portfolio.stockSymbol();
+        String timestamp = portfolio.dateTime();
+        String rowKey = username + "#" + stockSymbol + "#" + timestamp + "#" + UUID.randomUUID().toString();
+
+        RowMutation newPortfolioMutation = RowMutation.create(portfolioTableID, rowKey)
+                .setCell("user", "username", username)
+                .setCell("portfolio", "stock_symbol", transaction.stockSymbol())
+                .setCell("portfolio", "num_shares", Integer.toString(transaction.numShares()))
+                .setCell("portfolio", "share_price", Double.toString(transaction.sharePrice()))
+                .setCell("portfolio", "timestamp", portfolio.dateTime());
+        client.mutateRow(newPortfolioMutation);
+        System.out.println("Successfully wrote new portfolio \"" + rowKey + "\" to DB.");
+
+        return rowKey;
     }
 }
