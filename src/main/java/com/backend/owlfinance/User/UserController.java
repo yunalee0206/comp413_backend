@@ -67,7 +67,7 @@ public class UserController {
         UserWithToken savedUser = userRepository.save(newUser);
 
         // Generate JWT token for the new user
-        String token = jwtUtil.generateToken(savedUser.getId());
+        String token = jwtUtil.generateToken(savedUser.getUsername());
         savedUser.setToken(token);
         userRepository.save(savedUser);
 
@@ -75,7 +75,9 @@ public class UserController {
         UserResponse response = new UserResponse(savedUser.getId(), savedUser.getUsername(), savedUser.getToken());
 
         // Return the response with user details and JWT token
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok()
+        .header("Authorization", "Bearer " + token)
+        .body(response);
     }
 
 
