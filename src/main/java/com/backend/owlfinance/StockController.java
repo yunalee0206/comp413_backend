@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.backend.owlfinance.database.bigtable.BigTableManager;
+import com.backend.owlfinance.database.obj.StockPrice;
+
 @RestController
 class StockController {
 
@@ -23,8 +26,9 @@ class StockController {
   // Aggregate root
   // tag::get-aggregate-root[]
   @GetMapping("/stocks")
-  List<Stock> all() {
-    return repository.findAll();
+  String all() {
+    return BigTableManager.getAllStockPrices();
+//    return repository.findAll();
   }
   // end::get-aggregate-root[]
 
@@ -44,11 +48,13 @@ class StockController {
 
   // Single item
   
-  @GetMapping("/stocks/{ticker}")
-  Stock one(@PathVariable String ticker) {
+  @GetMapping("/stocks/{tickerWithDateTime}")
+  StockPrice one(@PathVariable String tickerWithDateTime) {
+
+    return BigTableManager.getStockPrice(tickerWithDateTime);
     
-    return repository.findById(ticker)
-      .orElseThrow(() -> new StockNotFoundException(ticker));
+//    return repository.findById(ticker)
+//      .orElseThrow(() -> new StockNotFoundException(ticker));
   }
 
   @PutMapping("/stocks/{ticker}")
