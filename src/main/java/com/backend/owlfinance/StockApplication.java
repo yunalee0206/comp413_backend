@@ -5,6 +5,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import com.backend.owlfinance.database.bigtable.BigTableManager;
+import com.backend.owlfinance.external.StockFetcher;
 
 import java.io.IOException;
 
@@ -26,6 +27,18 @@ public class StockApplication {
 
     System.out.println("Trying to find incorrect row key: ");
     Transaction not = bt.getTransaction(testRowKey + "slim");
+
+    // Add daily data
+//    try {
+//      String stockCode = "AAPL";
+//
+//      // Fetch and save minute-by-minute data for a specific date
+//      String targetDate = "2024-11-15"; // Replace with your target date in YYYY-MM-DD format
+//      StockFetcher.getPriceDaily(stockCode, targetDate);
+//
+//    } catch (Exception e) {
+//      e.printStackTrace();
+//    }
 
     SpringApplication.run(StockApplication.class, args);
   }
