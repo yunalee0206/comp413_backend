@@ -1,23 +1,32 @@
-package com.backend.owlfinance;
+package com.backend.owlfinance.Transaction;
 
-import org.springframework.beans.factory.annotation.Autowired;
+// import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
+import com.backend.owlfinance.database.bigtable.BigTableManager;
 
 @Service
 public class OrderServiceImpl implements OrderService {
 
-    @Autowired
-    private OrderOperation orderOp;
 
-    @Autowired
-    private Transact2PortfolioAdapter t2pAdapter;
+    private BigTableManager database;
+
+    // @Autowired
+    // private Transact2PortfolioAdapter t2pAdapter;
     private final ConcurrentHashMap<String, OrderBook> orderBooks = new ConcurrentHashMap<>();
+
+    public OrderServiceImpl() throws IOException {
+        String projectId = "rice-comp-539-spring-2022";
+        String instanceId = "comp-539-bigtable";
+        this.database = new BigTableManager(projectId, instanceId);
+    }
 
     @Override
     public Order placeOrder(String type, Order order) {
         order.setType(type);
-        OrderBook orderBook = orderBooks.computeIfAbsent(order.getSymbol(), s -> new OrderBook(this.orderOp, this.t2pAdapter));
+        OrderBook orderBook = orderBooks.computeIfAbsent(order.getSymbol(), s -> new OrderBook(s, this.database));
         return orderBook.addOrder(order);
     }
 

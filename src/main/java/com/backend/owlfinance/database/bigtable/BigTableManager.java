@@ -9,6 +9,7 @@ import com.backend.owlfinance.database.obj.DemoUser;
 import com.backend.owlfinance.database.obj.StockPrice;
 import com.backend.owlfinance.database.obj.Transaction;
 import com.backend.owlfinance.database.obj.User;
+import com.backend.owlfinance.database.obj.Portfolio;
 import com.google.gson.Gson;
 
 import java.io.IOException;
@@ -17,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 public class BigTableManager {
 
@@ -24,7 +26,8 @@ public class BigTableManager {
     private final String bigtableDemoID = "bigtableDemo";
     private static final String userTableID = "users";
     private final String transactionsTableID = "transactions";
-    private final String stockPriceTableID = "stock-prices";
+    private static final String stockPriceTableID = "stock-prices";
+    private final String portfolioTableID = "portfolios";
 
     private static BigtableDataClient client = null;
     private final Random RANDOM = new Random(0xC413 + Instant.now().getEpochSecond());
@@ -300,7 +303,7 @@ public class BigTableManager {
         return rowKey;
     }
 
-    public StockPrice getStockPrice(String rowKey) {
+    public static StockPrice getStockPrice(String rowKey) {
         Row row = client.readRow(stockPriceTableID, rowKey);
         if (row == null) {
             System.out.println("StockPrice at: \"" + rowKey + "\" not found");
@@ -332,7 +335,7 @@ public class BigTableManager {
         client.mutateRow(RowMutation.create(stockPriceTableID, rowKey).deleteRow());
     }
 
-    public String getAllStockPrices() {
+    public static String getAllStockPrices() {
         ArrayList<StockPrice> allPrices = new ArrayList<StockPrice>();
         Query query = Query.create(stockPriceTableID);
         for (Row row : client.readRows(query)) {
@@ -354,5 +357,69 @@ public class BigTableManager {
 
         Gson gson = new Gson();
         return gson.toJson(allPrices);
+    }
+
+    /* Portfolios */
+    private Portfolio createPortfolioRecord(Row row) {
+        String username =  row.getCells("user", "username").get(0).getValue().toStringUtf8();
+        String stockSymbol = row.getCells("portfolio", "stock_symbol").get(0).getValue().toStringUtf8();
+        int numShares = Integer.parseInt(row.getCells("portfolio", "num_shares").get(0).getValue().toStringUtf8());
+        double sharePrice = Double.parseDouble(row.getCells("portfolio", "share_price").get(0).getValue().toStringUtf8());
+        String dateTime = row.getCells("portfolio", "timestamp").get(0).getValue().toStringUtf8();
+
+        return new Portfolio(username, stockSymbol, numShares, sharePrice, dateTime);
+    }
+
+    public Portfolio getPortfolioRow(String rowKey) {
+        Row row = client.readRow(portfolioTableID, rowKey);
+
+        if (row == null) {
+            System.out.println("Portfolio at: \"" + rowKey + "\" not found");
+            return null;
+        }
+
+        return createPortfolioRecord(row);
+    }
+
+    public List<Portfolio> getPortfolioRowsByUser(String username) {
+        String rowKeyPrefix = username + "#";
+        Query query = Query.create(portfolioTableID).prefix(rowKeyPrefix);
+        List<Portfolio> portfolioRows = new ArrayList<>();
+
+        client.readRows(query).forEach(row -> {
+            portfolioRows.add(createPortfolioRecord(row));
+        });
+
+        return portfolioRows;
+    }
+
+    public List<Portfolio> getPortfolioRowsByUserAndStock(String username, String stockSymbol) {
+        String rowKeyPrefix = username + "#" + stockSymbol + "#";
+        Query query = Query.create(portfolioTableID).prefix(rowKeyPrefix);
+        List<Portfolio> portfolioRows = new ArrayList<>();
+
+        client.readRows(query).forEach(row -> {
+            portfolioRows.add(createPortfolioRecord(row));
+        });
+
+        return portfolioRows;
+    }
+
+    public String createPortfolioRow(Portfolio portfolio) {
+        String username = portfolio.username();
+        String stockSymbol = portfolio.stockSymbol();
+        String timestamp = portfolio.dateTime();
+        String rowKey = username + "#" + stockSymbol + "#" + timestamp + "#" + UUID.randomUUID().toString();
+
+        RowMutation newPortfolioMutation = RowMutation.create(portfolioTableID, rowKey)
+                .setCell("user", "username", username)
+                .setCell("portfolio", "stock_symbol", portfolio.stockSymbol())
+                .setCell("portfolio", "num_shares", Integer.toString(portfolio.numShares()))
+                .setCell("portfolio", "share_price", Double.toString(portfolio.sharePrice()))
+                .setCell("portfolio", "timestamp", portfolio.dateTime());
+        client.mutateRow(newPortfolioMutation);
+        System.out.println("Successfully wrote new portfolio \"" + rowKey + "\" to DB.");
+
+        return rowKey;
     }
 }

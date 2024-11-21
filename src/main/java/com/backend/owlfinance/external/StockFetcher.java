@@ -15,7 +15,7 @@ import com.backend.owlfinance.database.obj.StockPrice;
 
 public class StockFetcher {
 
-    private static final String Alpha_API = ""; // replace with your actual API key
+    private static final String Alpha_API = "4TiehBiTfflcAH4kpwXg520iqRjJ5CKk"; // replace with your actual API key
     private static final String Alpha_URL = "https://www.alphavantage.co/query";
 
     public static void getPriceMonthly(String stockCode, String targetMonth) throws Exception {
@@ -38,6 +38,11 @@ public class StockFetcher {
         in.close();
 
         JSONObject jsonResponse = new JSONObject(response.toString());
+
+
+
+        jsonResponse = jsonResponse.getJSONObject("Time Series (1min)");
+
 
         addToDatabase(jsonResponse, stockCode);
 
@@ -139,8 +144,11 @@ public class StockFetcher {
                 /*
                 delete this line to keep the data in the database. This is just for testing.
                  */
-                bt.deleteStockPrice(rowkey);
+                //bt.deleteStockPrice(rowkey);
             }
+
+            //System.out.println(bt.getAllStockPrices().toString());
+
         } catch (Exception e) {
             System.err.println("Error while processing JSON data: " + e.getMessage());
             e.printStackTrace();
@@ -156,12 +164,13 @@ public class StockFetcher {
             String stockCode = "AAPL";
 
             // Fetch and save minute-by-minute data for a specific date
-            String targetDate = "2024-11-15"; // Replace with your target date in YYYY-MM-DD format
-            getPriceDaily(stockCode, targetDate);
+            //String targetDate = "2024-10"; // Replace with your target date in YYYY-MM-DD format
+            //getPriceDaily(stockCode, targetDate);
+
 
             // Fetch and save minute-by-minute data for a specific month
-            //String targetMonth = "2023-10"; // Replace with your target month in YYYY-MM format
-            //getPriceMonthly(stockCode, targetMonth);
+            String targetMonth = "2024-10"; // Replace with your target month in YYYY-MM format
+            getPriceMonthly(stockCode, targetMonth);
 
         } catch (Exception e) {
             e.printStackTrace();

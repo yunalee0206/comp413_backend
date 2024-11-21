@@ -1,9 +1,8 @@
-package com.backend.owlfinance;
+package com.backend.owlfinance.Transaction;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import com.backend.owlfinance.Portfolio.PortfolioController;
-import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class Transact2PortfolioAdapter {
@@ -15,17 +14,22 @@ public class Transact2PortfolioAdapter {
         this.portfolioController = portfolioController;
     }
 
-    public boolean checkBalance(Long buyerId, double amount) {
-        return portfolioController.checkBalance(buyerId, amount);
+    public boolean checkBalance(String buyer, double amount) {
+        // return portfolioController.checkBalance(buyer, amount);
+        return true;
     }
 
-    public boolean checkShare(Long sellerId, String ticker, int amount) {
-        return portfolioController.checkShare(sellerId, ticker, amount);
+    public boolean checkShare(String seller, String ticker, int amount) {
+        // return portfolioController.checkShare(seller, ticker, amount);
+        return true;
     }
 
-    @Transactional
-    public String updatePortfolio(Long buyerId, Long sellerId, Double amount, String ticker, Integer shares) {
-        return portfolioController.update(buyerId, sellerId, amount, ticker, shares);
+    public void buy(Long buyerId, double price, String ticker, int quantity) {
+        
+    }
+
+    public void sell(Long sellerId, double price, String ticker, int quantity) {
+        
     }
 
 }

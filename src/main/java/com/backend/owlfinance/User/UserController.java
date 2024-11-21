@@ -97,7 +97,9 @@ public class UserController {
         UserResponse response = new UserResponse(username, token);
 
         // Return the response with user details and JWT token
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok()
+        .header("Authorization", "Bearer " + token)
+        .body(response);
     }
 
 
