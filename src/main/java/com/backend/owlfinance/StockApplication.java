@@ -28,6 +28,9 @@ public class StockApplication {
     System.out.println("Trying to find incorrect row key: ");
     Transaction not = bt.getTransaction(testRowKey + "slim");
 
+    // TODO BEFORE UNCOMMENTING: MAKE SURE ALPHA VANTAGE API LINK IN 
+    // EXTERNAL STOCK FETCHER IS POPULATED
+    
     // Add daily data
 //    try {
 //      String stockCode = "AAPL";

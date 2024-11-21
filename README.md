@@ -19,11 +19,13 @@ From a separate terminal, make curl commands to call the API:
 Get all stocks:
 `curl -v localhost:8080/stocks`
 
-Get a specific stock by ID:
-`curl -v localhost:8080/stocks/<id_num>`
+Get a specific stock by ticker, date, and time:
+`curl -v localhost:8080/stocks/{ticker}/{date}/{time}`
 
-Post a new stock record:
-`curl -X POST localhost:8080/stocks -H 'Content-type:application/json' -d '{"ticker": <ticker-symbol>, "price": <price>}'`
+Date format example: 2024-11-19
+Time format example: 13:56:00
+
+The time is by minutes, ending in :00. 
 
 Place an buy/sell order: 
 Note: Order type is specified in the url and others in the request body  
