@@ -76,7 +76,7 @@ public class BigTableDriver {
         // TODO: eventually want to make these actual test cases
         System.out.println("\nAdding new transaction");
         String transactionRowKey1 = bt.createTransaction(new Transaction(
-               "anthony413", "BUY", "NVDA", 1, 100.00, UUID.randomUUID().toString()
+                "anthony413", "BUY", "NVDA", 1, 100.00, UUID.randomUUID().toString()
         ));
 
         Transaction transaction = bt.getTransaction(transactionRowKey1);

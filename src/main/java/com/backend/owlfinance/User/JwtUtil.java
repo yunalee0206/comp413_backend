@@ -19,9 +19,9 @@ public class JwtUtil {
         return new SecretKeySpec(SECRET_KEY.getBytes(), SignatureAlgorithm.HS256.getJcaName());
     }
 
-    public String generateToken(Long id) {
+    public String generateToken(String username) {
         return Jwts.builder()
-                .setSubject(String.valueOf(id))
+                .setSubject(username)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256) // Updated signWith

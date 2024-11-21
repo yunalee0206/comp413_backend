@@ -22,11 +22,11 @@ public class BigTableManager {
 
     // Table IDs
     private final String bigtableDemoID = "bigtableDemo";
-    private final String userTableID = "users";
+    private static final String userTableID = "users";
     private final String transactionsTableID = "transactions";
     private final String stockPriceTableID = "stock-prices";
 
-    private final BigtableDataClient client;
+    private static BigtableDataClient client = null;
     private final Random RANDOM = new Random(0xC413 + Instant.now().getEpochSecond());
 
     public BigTableManager(String projectId, String instanceId) throws IOException {
@@ -89,7 +89,7 @@ public class BigTableManager {
         System.out.println("Successfully wrote user \"" + username + "\" to DB.");
     }
      */
-    public void createUser(User user) {
+    public static void createUser(User user) {
         String username = user.username();
         // First check if user exists
         // NOTE: this assumes the username is our row key—this might not be the case?
@@ -116,7 +116,7 @@ public class BigTableManager {
     }
 
     // Get complete user
-    public User getUser(String username) {
+    public static User getUser(String username) {
         Row row = client.readRow(userTableID, username);
         if (row == null) {
             System.out.println("User \"" + username + "\" not found");
@@ -143,7 +143,7 @@ public class BigTableManager {
     }
 
     // Get user token
-    public String getUserToken(String username) {
+    public static String getUserToken(String username) {
         Row row = client.readRow(userTableID, username);
         if (row == null) {
             System.out.println("User \"" + username + "\" not found");
@@ -179,7 +179,7 @@ public class BigTableManager {
     }
 
     // Delete user.
-    public void deleteUser(String username) {
+    public static void deleteUser(String username) {
         Row row = client.readRow(userTableID, username);
         if (row == null) {
             System.out.println("User \"" + username + "\" not found");
