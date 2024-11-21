@@ -24,6 +24,8 @@ Get a specific stock by ticker, date, and time:
 
 Date format example: 2024-11-19
 
+The date should be at least one market day (M-F) before today's date.
+
 Time format example: 13:56:00
 
 The time is by minutes, ending in :00. 
