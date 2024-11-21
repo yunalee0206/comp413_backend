@@ -26,10 +26,10 @@ public class BigTableManager {
     private final String bigtableDemoID = "bigtableDemo";
     private final String userTableID = "users";
     private final String transactionsTableID = "transactions";
-    private final String stockPriceTableID = "stock-prices";
+    private static final String stockPriceTableID = "stock-prices";
     private final String portfolioTableID = "portfolios";
 
-    private final BigtableDataClient client;
+    private static BigtableDataClient client = null;
     private final Random RANDOM = new Random(0xC413 + Instant.now().getEpochSecond());
 
     public BigTableManager(String projectId, String instanceId) throws IOException {
@@ -303,7 +303,7 @@ public class BigTableManager {
         return rowKey;
     }
 
-    public StockPrice getStockPrice(String rowKey) {
+    public static StockPrice getStockPrice(String rowKey) {
         Row row = client.readRow(stockPriceTableID, rowKey);
         if (row == null) {
             System.out.println("StockPrice at: \"" + rowKey + "\" not found");
@@ -335,7 +335,7 @@ public class BigTableManager {
         client.mutateRow(RowMutation.create(stockPriceTableID, rowKey).deleteRow());
     }
 
-    public String getAllStockPrices() {
+    public static String getAllStockPrices() {
         ArrayList<StockPrice> allPrices = new ArrayList<StockPrice>();
         Query query = Query.create(stockPriceTableID);
         for (Row row : client.readRows(query)) {
