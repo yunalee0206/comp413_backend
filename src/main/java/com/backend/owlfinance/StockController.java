@@ -48,10 +48,12 @@ class StockController {
 
   // Single item
   
-  @GetMapping("/stocks/{tickerWithDateTime}")
-  StockPrice one(@PathVariable String tickerWithDateTime) {
+  @GetMapping("/stocks/{ticker}/{date}/{time}")
+  StockPrice one(@PathVariable String ticker, @PathVariable String date, @PathVariable String time) {
 
-    return BigTableManager.getStockPrice(tickerWithDateTime);
+    String rowKey = ticker + "#" + date + " " + time;
+
+    return BigTableManager.getStockPrice(rowKey);
     
 //    return repository.findById(ticker)
 //      .orElseThrow(() -> new StockNotFoundException(ticker));
