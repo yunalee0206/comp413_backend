@@ -89,7 +89,7 @@ public class UserController {
         String username = newUser.getUsername();
         String token = jwtUtil.generateToken(username);
         //savedUser.setToken(token);
-        User user = new User(username, "", token, 0);
+        User user = new User(username, "", token, 1000);
 
         BigTableManager.createUser(user);
 
