@@ -43,6 +43,7 @@ public class StockApplication {
 //      e.printStackTrace();
 //    }
 
+
     SpringApplication.run(StockApplication.class, args);
   }
 }
