@@ -9,7 +9,7 @@ import java.util.Date;
 
 public class Order {
 
-    private Long id;
+    private String id;
     private String username;    
     private String symbol;
     private int quantity;
@@ -18,11 +18,11 @@ public class Order {
     private Date timestamp;
 
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -72,6 +72,19 @@ public class Order {
 
     public void setTimestamp(Date timestamp) {
         this.timestamp = timestamp;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Order order = (Order) o;
+        return id != null && id.equals(order.id);
+    }
+
+    @Override
+    public String toString() {
+        return "Order Info:" + this.id + " " + this.username + " " + this.symbol + " " + this.quantity + " " + this.price + " " + this.type + " " + this.timestamp;
     }
 
 }

@@ -2,15 +2,21 @@ package com.backend.owlfinance.Transaction;
 
 import java.util.PriorityQueue;
 import java.util.Comparator;
-import com.backend.owlfinance.database.bigtable.BigTableManager;
-import com.backend.owlfinance.database.obj.StockPrice;
+import java.util.List;
+import java.util.UUID;
 
+import com.backend.owlfinance.Portfolio.InsufficientFundsException;
+import com.backend.owlfinance.Portfolio.InsufficientSharesException;
+import com.backend.owlfinance.database.bigtable.BigTableManager;
+import com.backend.owlfinance.database.obj.Portfolio;
+import com.backend.owlfinance.database.obj.StockPrice;
+import com.backend.owlfinance.database.obj.Transaction;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 class OrderBook {
     private String symbol;
-    // private Transact2PortfolioAdapter t2pAdapter;
     private PriorityQueue<Order> buyOrders;
     private PriorityQueue<Order> sellOrders;
     private BigTableManager database;
@@ -19,60 +25,65 @@ class OrderBook {
     public OrderBook(String symbol, BigTableManager database) {
         this.symbol = symbol;
         this.database = database;
-        // this.t2pAdapter = t2pAdapter;
         this.buyOrders = new PriorityQueue<>(new BuyOrderComparator());
         this.sellOrders = new PriorityQueue<>(new SellOrderComparator());
     }
 
-    public Order addOrder(Order order) {
+    /**
+     * Place an order into the orderbook
+     * @param order
+     * @return the order that was placed with the id
+     */
+    public Order placeOrder(Order order) {
         if (order.getType().equals("buy")) {
-            boolean isBuyerVerified = checkBalance(order.getUsername(), order.getPrice() * order.getQuantity());
-            if (!isBuyerVerified) {
-                System.out.println("Failure to add buy order: Insufficient balance");
-                return null;
-            }
+            checkBalance(order.getUsername(), order.getPrice() * order.getQuantity());
             buyOrders.add(order);
-            System.out.println("Buy Order addded: " + order.getId() + " Ticker: " + order.getSymbol() + " Price: " + order.getPrice() + " Quantity: " + order.getQuantity());
+            System.out.println("Buy Order addded: " + " Ticker: " + order.getSymbol() + " Price: " + order.getPrice() + " Quantity: " + order.getQuantity());
 
         } else if (order.getType().equals("sell")) {
-            boolean isSellerVerified = checkShare(order.getUsername(), order.getSymbol(), order.getQuantity());
-            if (!isSellerVerified) {
-                System.out.println("Failure to add sell order: Insufficient shares");
-                return null;
-            }
+            checkShare(order.getUsername(), order.getSymbol(), order.getQuantity());
             sellOrders.add(order);
-            System.out.println("Sell Order addded: " + order.getId() + " Ticker: " + order.getSymbol() + " Price: " + order.getPrice() + " Quantity: " + order.getQuantity());
-
+            System.out.println("Sell Order addded: " + " Ticker: " + order.getSymbol() + " Price: " + order.getPrice() + " Quantity: " + order.getQuantity());
         }
         return order;
     }
 
-    public Order updateOrder(Long orderId, Order order) {
-        if (order.getType().equals("buy")) {
-            buyOrders.remove(order);
-            buyOrders.add(order);
-            System.out.println("Buy Order updated: " + order.getId() + " Ticker: " + order.getSymbol() + " Price: " + order.getPrice() + " Quantity: " + order.getQuantity());
-        } else if (order.getType().equals("sell")) {
-            sellOrders.remove(order);
-            sellOrders.add(order);
-            System.out.println("Sell Order updated: " + order.getId() + " Ticker: " + order.getSymbol() + " Price: " + order.getPrice() + " Quantity: " + order.getQuantity());
-        }
-        return order;
-    }
+    // public Order updateOrder(Long orderId, Order order) {
+    //     if (order.getType().equals("buy")) {
+    //         buyOrders.remove(order);
+    //         buyOrders.add(order);
+    //         System.out.println("Buy Order updated: " + order.getId() + " Ticker: " + order.getSymbol() + " Price: " + order.getPrice() + " Quantity: " + order.getQuantity());
+    //     } else if (order.getType().equals("sell")) {
+    //         sellOrders.remove(order);
+    //         sellOrders.add(order);
+    //         System.out.println("Sell Order updated: " + order.getId() + " Ticker: " + order.getSymbol() + " Price: " + order.getPrice() + " Quantity: " + order.getQuantity());
+    //     }
+    //     return order;
+    // }
 
-    public void matchOrders() {
+    /**
+     * Match the orders in the orderbook
+     * @return a list of transactions
+     */
+    public List<Transaction> matchOrders() {
 
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime previousBusinessDay = getPreviousBusinessDay(now);
-        String currentTimestamp = previousBusinessDay.format(formatter);
-        String rowKey = this.symbol + "#" + currentTimestamp;
-        StockPrice stockPrice = database.getStockPrice(rowKey);
+        // LocalDateTime now = LocalDateTime.now();
+        // LocalDateTime previousBusinessDay = getPreviousBusinessDay(now);
+        // String currentTimestamp = previousBusinessDay.format(formatter);
+        // String rowKey = this.symbol + "#" + currentTimestamp;
+        // StockPrice stockPrice = BigTableManager.getStockPrice(rowKey);
+        // if (stockPrice == null) {
+        //     System.out.println("Stock price not found for " + this.symbol);
+        //     return new ArrayList<>();
+        // }
+        StockPrice stockPrice = new StockPrice(this.symbol, 90.0, 110.0, 200, 100.0, 100.0);
 
+        List<Transaction> transactions = new ArrayList<>();
         while (!buyOrders.isEmpty()) {
             Order buyOrder = buyOrders.peek();
             if (buyOrder.getPrice() > stockPrice.low()) {
                 buyOrder = buyOrders.poll();
-                executeBuy(buyOrder);
+                transactions.add(execute(buyOrder));
             } else {
                 break;
             }
@@ -82,13 +93,18 @@ class OrderBook {
             Order sellOrder = sellOrders.peek();
             if (sellOrder.getPrice() < stockPrice.high()) {
                 sellOrder = sellOrders.poll();
-                executeSell(sellOrder);
+                transactions.add(execute(sellOrder));
             } else {
                 break;
             }
         }
+        return transactions;
     }
 
+    /**
+     * Remove an order from the orderbook
+     * @param order
+     */
     public void removeOrder(Order order) {
         if (order.getType().equals("buy")) {
             buyOrders.remove(order);
@@ -97,24 +113,60 @@ class OrderBook {
         }
     }
 
-    private boolean checkBalance(String username, double amount) {
+    /**
+     * Check if the user has enough balance to place an order
+     * @param username
+     * @param amount
+     */
+    private void checkBalance(String username, double amount) {
+        System.out.println("Checking Balance for " + username + ": " + amount);
         double balance = database.getUserCashBalance(username);
-        return balance >= amount;
+        if (balance < amount) {
+            throw new InsufficientFundsException("Insufficient balance for placing order");
+        }
     }
 
-    private boolean checkShare(String username, String ticker, int amount) {
-        // int shares = database.getUserStocks(username, ticker);
-        // return shares >= amount;
-        return true;
+    /**
+     * Check if the user has enough shares to place an order
+     * @param username
+     * @param ticker
+     * @param amount
+     */
+    private void checkShare(String username, String ticker, int amount) {
+        System.out.println("Checking Share for " + username + " " + ticker + " " + amount);
+        List<Portfolio> portfolio = database.getPortfolioRowsByUserAndStock(username, ticker);
+        int totalShares = portfolio.stream()
+            .mapToInt(Portfolio::numShares)
+            .sum();
+        if (totalShares < amount) {
+            throw new InsufficientSharesException("Insufficient shares for placing order");
+        }
     }
 
-    private void executeBuy(Order buy) {
-        // t2pAdapter.buy(buy.getUsername(), buy.getPrice(), buy.getSymbol(), buy.getQuantity());
+    /**
+     * Execute an order, update the user's cash balance and stocks
+     * @param order
+     * @return the transaction
+     */
+    private Transaction execute(Order order) {
+        System.out.println("Executing Order: " + order.toString());
+        String uuid = UUID.randomUUID().toString();
+        Transaction transaction = new Transaction(
+            order.getUsername(),
+            order.getType(),
+            order.getSymbol(),
+            order.getQuantity(),
+            order.getPrice(),
+            uuid
+        );
+
+        database.createTransaction(transaction);
+        return transaction;
+        // TODO: Update user cash balance and user stocks
     }
 
-    private void executeSell(Order sell) {
-        // t2pAdapter.sell(sell.getUsername(), sell.getPrice(), sell.getSymbol(), sell.getQuantity());
-    }
+
+
 
     private LocalDateTime getPreviousBusinessDay(LocalDateTime dateTime) {
         switch (dateTime.getDayOfWeek()) {
