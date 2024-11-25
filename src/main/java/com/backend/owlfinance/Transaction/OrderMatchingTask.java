@@ -14,7 +14,7 @@ public class OrderMatchingTask {
     //     this.orderBookManager = orderBookManager;
     // }
 
-    @Scheduled(fixedRate = 1000) // Run every 1000 milliseconds
+    @Scheduled(fixedRate = 10000) // Run every 1000 milliseconds
     public void matchOrders() {
         orderService.matchOrders();
     }
