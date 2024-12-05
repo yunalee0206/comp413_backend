@@ -79,6 +79,78 @@ public class PortfolioRepository {
         return portfolio;
     }
 
+    public void addStocks(String username, String symbol, int shares, double price, String timestamp) {
+        // Get existing portfolio rows for this user and stock
+        List<Portfolio> existingRows = bigTableManager.getPortfolioRowsByUserAndStock(username, symbol);
+        
+        if (!existingRows.isEmpty()) {
+            // Calculate total shares and weighted average price
+            int totalShares = existingRows.stream()
+                .mapToInt(Portfolio::numShares)
+                .sum() + shares;
+            
+            double weightedPrice = (existingRows.stream()
+                .mapToDouble(p -> p.numShares() * p.sharePrice())
+                .sum() + (shares * price)) / totalShares;
+                
+            // Create updated portfolio record
+            Portfolio updatedRecord = new Portfolio(
+                username,
+                symbol,
+                totalShares,
+                weightedPrice,
+                timestamp
+            );
+            bigTableManager.createPortfolioRow(updatedRecord);
+        } else {
+            // Create new portfolio record
+            Portfolio newRecord = new Portfolio(
+                username,
+                symbol,
+                shares,
+                price,
+                timestamp
+            );
+            bigTableManager.createPortfolioRow(newRecord);
+        }
+    }
+
+    public void removeStocks(String username, String symbol, int sharesToRemove, String timestamp) {
+        // Get existing portfolio rows for this user and stock
+        List<Portfolio> existingRows = bigTableManager.getPortfolioRowsByUserAndStock(username, symbol);
+        
+        if (existingRows.isEmpty()) {
+            throw new IllegalStateException("No shares found for symbol: " + symbol);
+        }
+        
+        // Calculate total existing shares
+        int totalExistingShares = existingRows.stream()
+            .mapToInt(Portfolio::numShares)
+            .sum();
+            
+        if (totalExistingShares < sharesToRemove) {
+            throw new IllegalStateException(
+                "Insufficient shares to remove. Requested: " + sharesToRemove + 
+                ", Available: " + totalExistingShares);
+        }
+        
+        // Calculate remaining shares and maintain the same weighted average price
+        int remainingShares = totalExistingShares - sharesToRemove;
+        if (remainingShares > 0) {
+            double currentPrice = existingRows.get(0).sharePrice(); // Maintain existing price
+            
+            Portfolio updatedRecord = new Portfolio(
+                username,
+                symbol,
+                remainingShares,
+                currentPrice,
+                timestamp
+            );
+            bigTableManager.createPortfolioRow(updatedRecord);
+        }
+        // If remainingShares == 0, we don't create a new record, effectively removing the position
+    }
+
     public int getCashBalance(String username) {
         return bigTableManager.getUserCashBalance(username);
     }

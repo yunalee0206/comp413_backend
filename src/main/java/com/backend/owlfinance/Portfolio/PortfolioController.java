@@ -150,59 +150,49 @@ public class PortfolioController {
   }
 
   @PostMapping("/stocks/add")
-  ResponseEntity<UserPortfolio> addStocks(HttpServletRequest request, @RequestBody Map<String, Integer> stocksToAdd) {
+  ResponseEntity<UserPortfolio> addStocks(HttpServletRequest request, @RequestBody StockRequest stockRequest) {
     String username = jwtUtil.extractUsernameFromHeader(request);
-    UserPortfolio portfolio = repository.findByUsername(username)
-        .orElseThrow(() -> new PortfolioNotFoundException(username));
     
-    Map<String, Integer> currentStocks = portfolio.getStocks();
-    
-    for (Map.Entry<String, Integer> entry : stocksToAdd.entrySet()) {
-      String symbol = entry.getKey();
-      Integer quantity = entry.getValue();
-      
-      if (quantity <= 0) {
+    // Validate request
+    if (stockRequest.getShares() <= 0) {
         throw new InvalidAmountException("Stock quantity must be positive");
-      }
-      
-      currentStocks.merge(symbol, quantity, Integer::sum);
     }
     
-    portfolio.setStocks(currentStocks);
-    return ResponseEntity.ok(repository.save(portfolio));
+    // Add stocks using repository method
+    repository.addStocks(
+        username,
+        stockRequest.getSymbol(),
+        stockRequest.getShares(),
+        stockRequest.getPrice(),
+        stockRequest.getTimestamp()
+    );
+    
+    // Return updated portfolio
+    UserPortfolio updatedPortfolio = repository.findByUsername(username)
+        .orElseThrow(() -> new PortfolioNotFoundException(username));
+    
+    return ResponseEntity.ok(updatedPortfolio);
   }
 
   @PostMapping("/stocks/remove")
-  ResponseEntity<UserPortfolio> removeStocks(HttpServletRequest request, @RequestBody Map<String, Integer> stocksToRemove) {
+  ResponseEntity<UserPortfolio> removeStocks(HttpServletRequest request, @RequestBody StockRemoveRequest stockRequest) {
     String username = jwtUtil.extractUsernameFromHeader(request);
-    UserPortfolio portfolio = repository.findByUsername(username)
+
+    if (stockRequest.getShares() <= 0) {
+      throw new InvalidAmountException("Stock quantity must be positive");
+    }
+
+    repository.removeStocks(
+      username,
+      stockRequest.getSymbol(),
+      stockRequest.getShares(),
+      stockRequest.getTimestamp()
+    );
+
+    UserPortfolio updatedPortfolio = repository.findByUsername(username)
         .orElseThrow(() -> new PortfolioNotFoundException(username));
     
-    Map<String, Integer> currentStocks = portfolio.getStocks();
-    
-    for (Map.Entry<String, Integer> entry : stocksToRemove.entrySet()) {
-      String symbol = entry.getKey();
-      Integer quantity = entry.getValue();
-      
-      if (quantity <= 0) {
-        throw new InvalidAmountException("Stock quantity must be positive");
-      }
-      
-      Integer currentQuantity = currentStocks.getOrDefault(symbol, 0);
-      if (currentQuantity < quantity) {
-        throw new InsufficientFundsException("Insufficient stocks for removal");
-      }
-      
-      int newQuantity = currentQuantity - quantity;
-      if (newQuantity == 0) {
-        currentStocks.remove(symbol);
-      } else {
-        currentStocks.put(symbol, newQuantity);
-      }
-    }
-    
-    portfolio.setStocks(currentStocks);
-    return ResponseEntity.ok(repository.save(portfolio));
+    return ResponseEntity.ok(updatedPortfolio);
   }
 
   @PostMapping("/test/setup")
