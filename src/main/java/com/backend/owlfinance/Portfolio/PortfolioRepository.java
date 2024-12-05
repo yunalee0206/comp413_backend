@@ -29,23 +29,27 @@ public class PortfolioRepository {
 
     public Optional<UserPortfolio> findByUsername(String username) {
         List<Portfolio> portfolioRows = bigTableManager.getPortfolioRowsByUser(username);
+        double cashBalance = bigTableManager.getUserCashBalance(username);
+
+        // Create empty portfolio with cash balance if no stock records exist
         if (portfolioRows.isEmpty()) {
-            return Optional.empty();
+            UserPortfolio emptyPortfolio = new UserPortfolio();
+            emptyPortfolio.setUsername(username);
+            emptyPortfolio.setStocks(new HashMap<>());
+            emptyPortfolio.setBalance(cashBalance);
+            return Optional.of(emptyPortfolio);
         }
 
         // Convert BigTable Portfolio records to UserPortfolio
         Map<String, Integer> stocks = new HashMap<>();
-        double totalBalance = 0.0;
-
         for (Portfolio row : portfolioRows) {
             stocks.merge(row.stockSymbol(), row.numShares(), Integer::sum);
-            totalBalance += (row.sharePrice() * row.numShares());
         }
 
         UserPortfolio userPortfolio = new UserPortfolio();
         userPortfolio.setUsername(username);
         userPortfolio.setStocks(stocks);
-        userPortfolio.setBalance(totalBalance);
+        userPortfolio.setBalance(cashBalance);
 
         return Optional.of(userPortfolio);
     }

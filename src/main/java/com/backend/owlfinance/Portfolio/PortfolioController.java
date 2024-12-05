@@ -242,6 +242,9 @@ public class PortfolioController {
             portfolio.setStocks(initialStocks);
             repository.save(portfolio);
         }
+
+        String testUser4 = "testUser4";
+        repository.setCashBalance(testUser4, 10000.0);
         
         return ResponseEntity.ok("Test cases created successfully");
     } catch (Exception e) {
