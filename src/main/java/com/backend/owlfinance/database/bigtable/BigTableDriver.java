@@ -93,6 +93,13 @@ public class BigTableDriver {
 
         System.out.println(allPrices);
 
+        System.out.println("\nTesting updating stock volume:");
+        StockPrice found1 = bt.getStockPrice("F#2024-12-11T15:30:00Z");
+        System.out.println("Before adding 1000 shares, volume of F is " + found1.volume());
+        bt.updateVolume("F#2024-12-11T15:30:00Z", 1000);
+        StockPrice found2 = bt.getStockPrice("F#2024-12-11T15:30:00Z");
+        System.out.println("After adding 1000 shares, volume of F is " + found2.volume());
+
         bt.deleteStockPrice(stockPrice1);
         bt.deleteStockPrice(stockPrice2);
         bt.deleteStockPrice(stockPrice3);

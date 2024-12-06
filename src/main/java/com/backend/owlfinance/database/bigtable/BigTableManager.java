@@ -422,4 +422,21 @@ public class BigTableManager {
 
         return rowKey;
     }
+
+    public void updateVolume(String rowKey, int numShares) {
+        Row row = client.readRow(stockPriceTableID, rowKey);
+        if (row == null) {
+            System.out.println("StockPrice row \"" + rowKey + "\" not found while updating volume in a transaction.");
+            return;
+        }
+
+        String volumeTemp = row.getCells("external_stocks", "volume").get(0).getValue().toStringUtf8();
+        int newVolume = Integer.parseInt(volumeTemp) + numShares;
+
+
+        RowMutation volumeMutation = RowMutation.create(stockPriceTableID, rowKey)
+                .setCell("external_stocks", "volume", Integer.toString(newVolume));
+        client.mutateRow(volumeMutation);
+        System.out.println("Successfully updated volume in row \"" + rowKey + "\" after transaction.");
+    }
 }
