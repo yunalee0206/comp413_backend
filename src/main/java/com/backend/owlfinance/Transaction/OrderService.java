@@ -8,7 +8,7 @@ public interface OrderService {
     // Order updateOrder(Long orderId, Order order);
     void matchOrders();
 
-    List<Transaction> getLastMatchedOrders();
+    List<Transaction> getLastMatchedOrders(String username);
 
     List<Order> getUserOrders(String username);
 

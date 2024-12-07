@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import com.backend.owlfinance.Portfolio.InsufficientFundsException;
 import com.backend.owlfinance.Portfolio.InsufficientSharesException;
+import com.backend.owlfinance.Portfolio.PortfolioRepository;
 import com.backend.owlfinance.database.bigtable.BigTableManager;
 import com.backend.owlfinance.database.obj.Portfolio;
 import com.backend.owlfinance.database.obj.StockPrice;
@@ -20,13 +21,15 @@ class OrderBook {
     private PriorityQueue<Order> buyOrders;
     private PriorityQueue<Order> sellOrders;
     private BigTableManager database;
-    private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:00'Z'");
+    private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private PortfolioRepository portfolioRepository;
 
     public OrderBook(String symbol, BigTableManager database) {
         this.symbol = symbol;
         this.database = database;
         this.buyOrders = new PriorityQueue<>(new BuyOrderComparator());
         this.sellOrders = new PriorityQueue<>(new SellOrderComparator());
+        this.portfolioRepository = new PortfolioRepository();
     }
 
     /**
@@ -36,7 +39,7 @@ class OrderBook {
      */
     public Order placeOrder(Order order) {
         if (order.getType().equals("buy")) {
-            checkBalance(order.getUsername(), order.getPrice() * order.getQuantity());
+            // checkBalance(order.getUsername(), order.getPrice() * order.getQuantity());
             buyOrders.add(order);
             System.out.println("Buy Order addded: " + " Ticker: " + order.getSymbol() + " Price: " + order.getPrice() + " Quantity: " + order.getQuantity());
 
@@ -48,42 +51,38 @@ class OrderBook {
         return order;
     }
 
-    // public Order updateOrder(Long orderId, Order order) {
-    //     if (order.getType().equals("buy")) {
-    //         buyOrders.remove(order);
-    //         buyOrders.add(order);
-    //         System.out.println("Buy Order updated: " + order.getId() + " Ticker: " + order.getSymbol() + " Price: " + order.getPrice() + " Quantity: " + order.getQuantity());
-    //     } else if (order.getType().equals("sell")) {
-    //         sellOrders.remove(order);
-    //         sellOrders.add(order);
-    //         System.out.println("Sell Order updated: " + order.getId() + " Ticker: " + order.getSymbol() + " Price: " + order.getPrice() + " Quantity: " + order.getQuantity());
-    //     }
-    //     return order;
-    // }
-
     /**
      * Match the orders in the orderbook
      * @return a list of transactions
      */
     public List<Transaction> matchOrders() {
 
-        // LocalDateTime now = LocalDateTime.now();
-        // LocalDateTime previousBusinessDay = getPreviousBusinessDay(now);
-        // String currentTimestamp = previousBusinessDay.format(formatter);
-        // String rowKey = this.symbol + "#" + currentTimestamp;
-        // StockPrice stockPrice = BigTableManager.getStockPrice(rowKey);
-        // if (stockPrice == null) {
-        //     System.out.println("Stock price not found for " + this.symbol);
-        //     return new ArrayList<>();
-        // }
-        StockPrice stockPrice = new StockPrice(this.symbol, 90.0, 110.0, 200, 100.0, 100.0);
+        if (buyOrders.isEmpty() && sellOrders.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        System.out.println("Matching");
+
+        LocalDateTime now = LocalDateTime.now();
+        now = LocalDateTime.of(2024, 12, 3, 10, 0);
+        LocalDateTime previousBusinessDay = getPreviousBusinessDay(now);
+        String currentTimestamp = previousBusinessDay.format(formatter);
+        String rowKey = this.symbol + "#" + currentTimestamp;
+        StockPrice stockPrice = BigTableManager.getStockPrice(rowKey);
+        if (stockPrice == null) {
+            // System.out.println("Stock price not found for " + this.symbol);
+            return new ArrayList<>();
+        } else {
+            // System.out.println("Stock price found for " + this.symbol + " " + stockPrice.toString());
+        }
+        
 
         List<Transaction> transactions = new ArrayList<>();
         while (!buyOrders.isEmpty()) {
             Order buyOrder = buyOrders.peek();
-            if (buyOrder.getPrice() > stockPrice.low()) {
+            if (buyOrder.getPrice() >= stockPrice.low()) {
                 buyOrder = buyOrders.poll();
-                transactions.add(execute(buyOrder));
+                transactions.add(execute(buyOrder, stockPrice.low()));
             } else {
                 break;
             }
@@ -91,15 +90,16 @@ class OrderBook {
 
         while (!sellOrders.isEmpty()) {
             Order sellOrder = sellOrders.peek();
-            if (sellOrder.getPrice() < stockPrice.high()) {
+            if (sellOrder.getPrice() <= stockPrice.high()) {
                 sellOrder = sellOrders.poll();
-                transactions.add(execute(sellOrder));
+                transactions.add(execute(sellOrder, stockPrice.high()));
             } else {
                 break;
             }
         }
         return transactions;
     }
+    
 
     /**
      * Remove an order from the orderbook
@@ -107,8 +107,10 @@ class OrderBook {
      */
     public void removeOrder(Order order) {
         if (order.getType().equals("buy")) {
+            System.out.println("Remove Buy Order: " + order.toString());
             buyOrders.remove(order);
         } else if (order.getType().equals("sell")) {
+            System.out.println("Remove Sell Order: " + order.toString());
             sellOrders.remove(order);
         }
     }
@@ -148,7 +150,7 @@ class OrderBook {
      * @param order
      * @return the transaction
      */
-    private Transaction execute(Order order) {
+    private Transaction execute(Order order, double price) {
         System.out.println("Executing Order: " + order.toString());
         String uuid = UUID.randomUUID().toString();
         Transaction transaction = new Transaction(
@@ -156,13 +158,35 @@ class OrderBook {
             order.getType(),
             order.getSymbol(),
             order.getQuantity(),
-            order.getPrice(),
-            uuid
+            price,
+            order.getId()
         );
 
         database.createTransaction(transaction);
+        if (order.getType().equals("buy")) {
+            portfolioRepository.addStocks(
+                order.getUsername(),
+                order.getSymbol(),
+                order.getQuantity(),
+                price,
+                LocalDateTime.now().format(formatter)
+            );
+            double newBalance = portfolioRepository.getCashBalance(order.getUsername()) - (price * order.getQuantity());
+            portfolioRepository.setCashBalance(order.getUsername(), newBalance);
+        } else if (order.getType().equals("sell")) {
+            portfolioRepository.removeStocks(
+                order.getUsername(),
+                order.getSymbol(),
+                order.getQuantity(),
+                LocalDateTime.now().format(formatter)
+            );
+            double newBalance = portfolioRepository.getCashBalance(order.getUsername()) + (price * order.getQuantity());
+            portfolioRepository.setCashBalance(order.getUsername(), newBalance);
+        }
+
         return transaction;
-        // TODO: Update user cash balance and user stocks
+    
+
     }
 
 
