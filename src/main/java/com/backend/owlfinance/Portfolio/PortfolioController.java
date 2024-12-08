@@ -11,7 +11,7 @@ import com.backend.owlfinance.database.obj.Portfolio;
 import java.util.Optional;
 import java.util.HashMap;
 import java.time.LocalDateTime;
-
+import com.backend.owlfinance.database.bigtable.BigTableManager;
 @RestController
 @RequestMapping("/portfolios")
 public class PortfolioController {
@@ -75,10 +75,9 @@ public class PortfolioController {
         throw new PortfolioNotFoundException(username);
     }
     
-    double newBalance = currentBalance + amount;
-    repository.setCashBalance(username, newBalance);
+    repository.setCashBalance(username, amount);
     Map<String, Double> response = new HashMap<>();
-    response.put("balance", newBalance);
+    response.put("balance", currentBalance + amount);
     return ResponseEntity.ok(response);
   }
 
@@ -96,14 +95,19 @@ public class PortfolioController {
     }
     
     if (currentBalance >= amount) {
-        double newBalance = currentBalance - amount;
-        repository.setCashBalance(username, newBalance);
+        repository.setCashBalance(username, -amount);
         Map<String, Double> response = new HashMap<>();
-        response.put("balance", newBalance);
+        response.put("balance", currentBalance - amount);
         return ResponseEntity.ok(response);
     } else {
         throw new InsufficientFundsException("Insufficient funds for withdrawal");
     }
+  }
+  @GetMapping("/balance/history")
+  ResponseEntity<List<BigTableManager.BalanceEntry>> getBalanceHistory(HttpServletRequest request) {
+    String username = jwtUtil.extractUsernameFromHeader(request);
+    List<BigTableManager.BalanceEntry> history = repository.getBalanceHistory(username);
+    return ResponseEntity.ok(history);
   }
 
   @PostMapping("/test/setup")

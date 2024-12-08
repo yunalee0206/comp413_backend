@@ -157,6 +157,10 @@ public class PortfolioRepository {
         bigTableManager.updateUserCashBalance(username, balance);
     }
 
+    public List<BigTableManager.BalanceEntry> getBalanceHistory(String username) {
+        return bigTableManager.getBalanceHistory(username);
+    }
+
     public List<UserPortfolio> findAll() {
         return null;
     }

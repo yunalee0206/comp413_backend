@@ -453,12 +453,13 @@ public class BigTableManager {
         System.out.println("Successfully created cash balance for user: " + username);
     }
 
-    public void updateUserCashBalance(String username, double newBalance) {
+    public void updateUserCashBalance(String username, double balanceDelta) {
         double currBalance = getUserCashBalance(username);
+        double newBalance = currBalance + balanceDelta;
         String transactionId = Long.toString(System.currentTimeMillis()); // Use current timestamp as ID
 
         if (currBalance == -1) {
-            createUserCashBalance(username, balanceDelta);
+            createUserCashBalance(username, newBalance);
             return;
         }
 
