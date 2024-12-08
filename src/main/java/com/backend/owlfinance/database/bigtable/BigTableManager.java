@@ -15,11 +15,7 @@ import com.google.gson.Gson;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 
 // Imports for cell versioning
 import com.google.cloud.bigtable.admin.v2.BigtableTableAdminClient;
@@ -632,5 +628,19 @@ public class BigTableManager {
 
         public double getBalance() { return balance; }
         public String getTimestamp() { return timestamp; }
+    }
+
+    public static List<String> getAllStockPriceSymbols() {
+        //ArrayList<StockPrice> allPrices = new ArrayList<StockPrice>();
+        Set<String> symbols = new HashSet<>();
+        Query query = Query.create(stockPriceTableID);
+        for (Row row : client.readRows(query)) {
+            String stockSymbol = row.getCells("external_stocks", "stock_symbol").get(0).getValue().toStringUtf8();
+
+            symbols.add(stockSymbol);
+        }
+        List<String> tickers = new ArrayList<>(symbols);
+
+        return tickers;
     }
 }
