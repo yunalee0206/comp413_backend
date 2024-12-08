@@ -405,6 +405,15 @@ public class BigTableManager {
         return portfolioRows;
     }
 
+    public void deleteAllPortfolioRows() {
+        Iterator<Row> rows = client.readRows(Query.create(portfolioTableID)).stream().iterator();
+        Row row;
+        while (rows.hasNext()) {
+            row = rows.next();
+            client.mutateRow(RowMutation.create(portfolioTableID, row.getKey()).deleteRow());
+        }
+    }
+
     public String createPortfolioRow(Portfolio portfolio) {
         String username = portfolio.username();
         String stockSymbol = portfolio.stockSymbol();

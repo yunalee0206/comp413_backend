@@ -1,5 +1,6 @@
 package com.backend.owlfinance.database.bigtable;
 
+import com.backend.owlfinance.database.obj.Portfolio;
 import com.backend.owlfinance.database.obj.StockPrice;
 import com.backend.owlfinance.database.obj.Transaction;
 import com.backend.owlfinance.database.obj.User;
@@ -29,6 +30,7 @@ public class BigTableDriver {
         BigTableManager bt = new BigTableManager(projectId, instanceId);
 
         testUserMethods(bt);
+        testPortfolioMethods(bt);
 
         // TESTING TRANSACTIONS TABLE
         // TODO: eventually want to make these actual test cases
@@ -89,9 +91,9 @@ public class BigTableDriver {
         System.out.println("Stock found: " + found);
 
         System.out.println("Getting all stock prices");
-        String allPrices = bt.getAllStockPrices();
-
-        System.out.println(allPrices);
+//        String allPrices = bt.getAllStockPrices();
+//
+//        System.out.println(allPrices);
 
         System.out.println("\nTesting updating stock volume:");
         StockPrice found1 = bt.getStockPrice("F#2024-12-11T15:30:00Z");
@@ -115,6 +117,35 @@ public class BigTableDriver {
      */
     private static String timestamp() {
         return ZonedDateTime.now(ZoneOffset.UTC).format(TSFORMATTER);
+    }
+
+    public static void testPortfolioMethods(BigTableManager bt) {
+        System.out.println("\nTesting portfolio methods");
+
+        System.out.println("\nCreate portfolio row");
+        String rowKey = bt.createPortfolioRow(new Portfolio("username", "NVDA", 5, 100.00, timestamp()));
+
+        System.out.println("\nGet portfolio row");
+        Portfolio portfolioObject = bt.getPortfolioRow(rowKey);
+        System.out.println(portfolioObject);
+
+        System.out.println("\nAdding more rows");
+        bt.createPortfolioRow(new Portfolio("username", "NVDA", 10, 150.00, timestamp()));
+        bt.createPortfolioRow(new Portfolio("username", "AAPL", 10, 114.03, timestamp()));
+
+        System.out.println("\nGet all rows for a user");
+        List<Portfolio> userPortfolio = bt.getPortfolioRowsByUser("username");
+        for (Portfolio portfolio : userPortfolio) {
+            System.out.println(portfolio);
+        }
+
+        System.out.println("\nGet all rows for a user filtered by a specific stock");
+        List<Portfolio> userPortfolioNVDA = bt.getPortfolioRowsByUserAndStock("username", "NVDA");
+        for (Portfolio portfolio : userPortfolioNVDA) {
+            System.out.println(portfolio);
+        }
+
+        bt.deleteAllPortfolioRows();
     }
 
     /**
