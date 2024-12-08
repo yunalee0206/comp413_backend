@@ -414,8 +414,6 @@ public class BigTableManager {
         for (Portfolio row : portfolioRows) {
             int numSharesToSell = Math.min(numShares, row.numShares());
 
-            System.out.println(row);
-
             String timestamp = row.dateTime();
             String rowKey = username + "#" + stockSymbol + "#" + timestamp;
             RowMutation mutation = RowMutation.create(portfolioTableID, rowKey)
