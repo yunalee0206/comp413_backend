@@ -96,6 +96,11 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    public List<Transaction> getUserHistory(String username) {
+        return database.getTransactionsByUser(username);
+    }
+
+    @Override
     public boolean cancelOrder(String username, String orderId) {
         Set<Order> orders = ongoingTransaction.get(username);
         if (orders != null) {
