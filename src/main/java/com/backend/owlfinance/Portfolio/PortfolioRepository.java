@@ -9,6 +9,8 @@ import java.util.Optional;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.stream.Collectors;
+import com.backend.owlfinance.database.obj.StockPrice;
 
 @Repository
 public class PortfolioRepository {
@@ -29,7 +31,14 @@ public class PortfolioRepository {
 
     public Optional<UserPortfolio> findByUsername(String username) {
         List<Portfolio> portfolioRows = bigTableManager.getPortfolioRowsByUser(username);
+        System.out.println("portfolioRows: " + portfolioRows);
         double cashBalance = bigTableManager.getUserCashBalance(username);
+        
+        // Set default cash balance of 1000 if no balance exists
+        if (cashBalance == -1) {
+            cashBalance = 1000.0;
+            bigTableManager.createUserCashBalance(username, cashBalance);
+        }
 
         // Create empty portfolio with cash balance if no stock records exist
         if (portfolioRows.isEmpty()) {
@@ -40,124 +49,112 @@ public class PortfolioRepository {
             return Optional.of(emptyPortfolio);
         }
 
-        // Convert BigTable Portfolio records to UserPortfolio
-        Map<String, Integer> stocks = new HashMap<>();
-        for (Portfolio row : portfolioRows) {
-            stocks.merge(row.stockSymbol(), row.numShares(), Integer::sum);
+        // Group portfolio rows by stock symbol
+        Map<String, List<Portfolio>> stockGroups = portfolioRows.stream()
+            .collect(Collectors.groupingBy(Portfolio::stockSymbol));
+
+        // Calculate positions for each stock
+        Map<String, UserPortfolio.StockPosition> positions = new HashMap<>();
+        for (Map.Entry<String, List<Portfolio>> entry : stockGroups.entrySet()) {
+            String symbol = entry.getKey();
+            List<Portfolio> rows = entry.getValue();
+            
+            int totalShares = 0;
+            double totalCost = 0.0;
+            double totalReturn = 0.0;
+            
+            for (Portfolio row : rows) {
+                totalShares += row.numShares();
+                totalCost += row.numShares() * row.sharePrice();
+                
+                // Calculate return for each lot separately
+                double currentPrice = getCurrentPrice(symbol);
+                totalReturn += (currentPrice - row.sharePrice()) * row.numShares();
+            }
+            
+            double avgBuyPrice = totalShares > 0 ? totalCost / totalShares : 0;
+            double currentPrice = getCurrentPrice(symbol);
+            
+            if (totalShares > 0) {
+                positions.put(symbol, new UserPortfolio.StockPosition(
+                    totalShares,
+                    avgBuyPrice,
+                    currentPrice,
+                    totalReturn
+                ));
+            }
         }
 
         UserPortfolio userPortfolio = new UserPortfolio();
         userPortfolio.setUsername(username);
-        userPortfolio.setStocks(stocks);
+        userPortfolio.setStocks(positions);
         userPortfolio.setBalance(cashBalance);
 
         return Optional.of(userPortfolio);
     }
 
-    public UserPortfolio save(UserPortfolio portfolio) {
-        // Create a new portfolio record
-        Portfolio newRecord = new Portfolio(
-            portfolio.getUsername(),
-            "", // stock symbol will be set for each stock entry
-            0,  // shares will be set for each stock entry
-            portfolio.getBalance(),
-            java.time.Instant.now().toString()
-        );
-
-        // Save the portfolio record
-        for (Map.Entry<String, Integer> stockEntry : portfolio.getStocks().entrySet()) {
-            Portfolio stockRecord = new Portfolio(
-                portfolio.getUsername(),
-                stockEntry.getKey(),
-                stockEntry.getValue(),
-                portfolio.getBalance(),
-                java.time.Instant.now().toString()
-            );
-            bigTableManager.createPortfolioRow(stockRecord);
+    private double getCurrentPrice(String symbol) {
+        String date = "2024-12-04";
+        String time = "09:00:00";
+        try {
+            StockPrice stockPrice = bigTableManager.getStockPrice(symbol + "#" + date + " " + time);
+            return stockPrice != null ? stockPrice.open() : 0.0;
+        } catch (Exception e) {
+            System.err.println("Failed to fetch current price for " + symbol + ": " + e.getMessage());
+            return 0.0;
         }
+    }
 
-        return portfolio;
+    public PortfolioRow save(PortfolioRow portfolioRow) {
+        // Create a new Portfolio record
+        Portfolio portfolio = new Portfolio(
+            portfolioRow.getUsername(),
+            portfolioRow.getSymbol(),
+            portfolioRow.getQuantity(),
+            portfolioRow.getPurchasePrice(),
+            portfolioRow.getPurchaseDate().toString()
+        );
+        
+        // Save to BigTable using BigTableManager
+        bigTableManager.createPortfolioRow(portfolio);
+        
+        return portfolioRow;
     }
 
     public void addStocks(String username, String symbol, int shares, double price, String timestamp) {
-        // Get existing portfolio rows for this user and stock
-        List<Portfolio> existingRows = bigTableManager.getPortfolioRowsByUserAndStock(username, symbol);
-        
-        if (!existingRows.isEmpty()) {
-            // Calculate total shares and weighted average price
-            int totalShares = existingRows.stream()
-                .mapToInt(Portfolio::numShares)
-                .sum() + shares;
-            
-            double weightedPrice = (existingRows.stream()
-                .mapToDouble(p -> p.numShares() * p.sharePrice())
-                .sum() + (shares * price)) / totalShares;
-                
-            // Create updated portfolio record
-            Portfolio updatedRecord = new Portfolio(
-                username,
-                symbol,
-                totalShares,
-                weightedPrice,
-                timestamp
-            );
-            bigTableManager.createPortfolioRow(updatedRecord);
-        } else {
-            // Create new portfolio record
-            Portfolio newRecord = new Portfolio(
-                username,
-                symbol,
-                shares,
-                price,
-                timestamp
-            );
-            bigTableManager.createPortfolioRow(newRecord);
-        }
+        // Create new portfolio record for the newly added shares
+        Portfolio newRecord = new Portfolio(
+            username,
+            symbol,
+            shares,
+            price,
+            timestamp
+        );
+        bigTableManager.createPortfolioRow(newRecord);
     }
 
     public void removeStocks(String username, String symbol, int sharesToRemove, String timestamp) {
-        // Get existing portfolio rows for this user and stock
-        List<Portfolio> existingRows = bigTableManager.getPortfolioRowsByUserAndStock(username, symbol);
-        
-        if (existingRows.isEmpty()) {
-            throw new IllegalStateException("No shares found for symbol: " + symbol);
+        try {
+            bigTableManager.sellShares(username, symbol, sharesToRemove);
+        } catch (Exception e) {
+            // Log the error and rethrow as a runtime exception
+            System.err.println("Failed to remove stocks: " + e.getMessage());
+            throw new RuntimeException("Failed to remove stocks", e);
         }
-        
-        // Calculate total existing shares
-        int totalExistingShares = existingRows.stream()
-            .mapToInt(Portfolio::numShares)
-            .sum();
-            
-        if (totalExistingShares < sharesToRemove) {
-            throw new IllegalStateException(
-                "Insufficient shares to remove. Requested: " + sharesToRemove + 
-                ", Available: " + totalExistingShares);
-        }
-        
-        // Calculate remaining shares and maintain the same weighted average price
-        int remainingShares = totalExistingShares - sharesToRemove;
-        if (remainingShares > 0) {
-            double currentPrice = existingRows.get(0).sharePrice(); // Maintain existing price
-            
-            Portfolio updatedRecord = new Portfolio(
-                username,
-                symbol,
-                remainingShares,
-                currentPrice,
-                timestamp
-            );
-            bigTableManager.createPortfolioRow(updatedRecord);
-        }
-        // If remainingShares == 0, we don't create a new record, effectively removing the position
     }
 
     public double getCashBalance(String username) {
-        return bigTableManager.getUserCashBalance(username);
+        double balance = bigTableManager.getUserCashBalance(username);
+        if (balance == -1) {
+            balance = 1000.0;
+            bigTableManager.createUserCashBalance(username, balance);
+        }
+        return balance;
     }
 
     //TODO: deprecate use of setCashBalance, we should only be using updateUserCashBalance
     public void setCashBalance(String username, double balance) {
-        bigTableManager.createUserCashBalance(username, balance);
+        bigTableManager.updateUserCashBalance(username, balance);
     }
 
     public List<UserPortfolio> findAll() {

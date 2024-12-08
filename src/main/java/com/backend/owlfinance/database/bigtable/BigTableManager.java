@@ -93,12 +93,12 @@ public class BigTableManager {
         System.out.println("Successfully wrote user \"" + username + "\" to DB.");
     }
      */
-    public static void createUser(User user) {  // Remove static
+    public static boolean createUser(User user) {  // Changed return type to boolean
         String username = user.username();
         Row existingUser = client.readRow(userTableID, username);
         if (existingUser != null) {
             System.out.println("User \"" + username + "\" already exists in table");
-            return;
+            return false;  // User already exists
         }
 
         String initialToken = user.token();
@@ -110,6 +110,7 @@ public class BigTableManager {
 
         client.mutateRow(mutation);
         System.out.println("Successfully created user: " + username);
+        return true;  // User created successfully
     }
 
     // Get complete user
@@ -453,7 +454,7 @@ public class BigTableManager {
         }
 
         RowMutation mutation = RowMutation.create(portfolioTableID, username)
-                .setCell("user", "cash_balance", Double.toString(currBalance + balanceDelta));
+                .setCell("user", "cash_balance", Double.toString(balanceDelta));
         client.mutateRow(mutation);
         System.out.println("Successfully updated cash balance for user: " + username);
     }

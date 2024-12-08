@@ -10,6 +10,7 @@ import java.util.Map;
 import com.backend.owlfinance.database.obj.Portfolio;
 import java.util.Optional;
 import java.util.HashMap;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/portfolios")
@@ -40,48 +41,6 @@ public class PortfolioController {
     return currentBalance >= amount;
   }
 
-  @GetMapping("/checkshare")
-  public Boolean checkShare(HttpServletRequest request,
-                     @RequestParam(value = "ticker") String ticker,
-                     @RequestParam(value = "amount") Integer amount) {
-    String username = jwtUtil.extractUsernameFromHeader(request);
-    UserPortfolio portfolio = repository.findByUsername(username)
-        .orElseThrow(() -> new PortfolioNotFoundException(username));
-    System.out.println("Checking share for user " + username + " ticker " + ticker + " amount " + amount);
-    return portfolio.getStocks().getOrDefault(ticker, 0) >= amount;
-  }
-
-  @PutMapping("/update")
-  public String update(@RequestParam(value = "buyerUsername") String buyerUsername,
-                @RequestParam(value = "sellerUsername") String sellerUsername,
-                @RequestParam(value = "amount") Double amount,
-                @RequestParam(value = "ticker") String ticker,
-                @RequestParam(value = "shares") Integer shares) {
-    // Get current balances
-    double buyerBalance = repository.getCashBalance(buyerUsername);
-    double sellerBalance = repository.getCashBalance(sellerUsername);
-    
-    if (buyerBalance == -1 || sellerBalance == -1) {
-        throw new PortfolioNotFoundException("User not found");
-    }
-
-    // Update balances
-    repository.setCashBalance(buyerUsername, buyerBalance - amount);
-    repository.setCashBalance(sellerUsername, sellerBalance + amount);
-
-    // Update stocks (using existing portfolio methods)
-    UserPortfolio buyerPortfolio = repository.findByUsername(buyerUsername)
-        .orElseThrow(() -> new PortfolioNotFoundException(buyerUsername));
-    UserPortfolio sellerPortfolio = repository.findByUsername(sellerUsername)
-        .orElseThrow(() -> new PortfolioNotFoundException(sellerUsername));
-        
-    buyerPortfolio.getStocks().merge(ticker, shares, Integer::sum);
-    sellerPortfolio.getStocks().merge(ticker, -shares, Integer::sum);
-    repository.save(buyerPortfolio);
-    repository.save(sellerPortfolio);
-    
-    return "Success";
-  }
 
   @GetMapping
   ResponseEntity<UserPortfolio> getPortfolio(HttpServletRequest request) {
@@ -92,25 +51,19 @@ public class PortfolioController {
   }
 
   @GetMapping("/balance")
-  ResponseEntity<Double> getUserBalance(HttpServletRequest request) {
+  ResponseEntity<Map<String, Double>> getUserBalance(HttpServletRequest request) {
     String username = jwtUtil.extractUsernameFromHeader(request);
     double balance = repository.getCashBalance(username);
     if (balance == -1) {
         throw new PortfolioNotFoundException(username);
     }
-    return ResponseEntity.ok(balance);
-  }
-
-  @GetMapping("/stocks")
-  ResponseEntity<Map<String, Integer>> getUserStocks(HttpServletRequest request) {
-    String username = jwtUtil.extractUsernameFromHeader(request);
-    UserPortfolio portfolio = repository.findByUsername(username)
-        .orElseThrow(() -> new PortfolioNotFoundException(username));
-    return ResponseEntity.ok(portfolio.getStocks());
+    Map<String, Double> response = new HashMap<>();
+    response.put("balance", balance);
+    return ResponseEntity.ok(response);
   }
 
   @PostMapping("/deposit")
-  ResponseEntity<Double> deposit(HttpServletRequest request, @RequestBody AmountRequest amountRequest) {
+  ResponseEntity<Map<String, Double>> deposit(HttpServletRequest request, @RequestBody AmountRequest amountRequest) {
     String username = jwtUtil.extractUsernameFromHeader(request);
     Double amount = amountRequest.getAmount();
     if (amount == null || amount <= 0) {
@@ -124,11 +77,13 @@ public class PortfolioController {
     
     double newBalance = currentBalance + amount;
     repository.setCashBalance(username, newBalance);
-    return ResponseEntity.ok(newBalance);
+    Map<String, Double> response = new HashMap<>();
+    response.put("balance", newBalance);
+    return ResponseEntity.ok(response);
   }
 
   @PostMapping("/withdraw")
-  ResponseEntity<Double> withdraw(HttpServletRequest request, @RequestBody AmountRequest amountRequest) {
+  ResponseEntity<Map<String, Double>> withdraw(HttpServletRequest request, @RequestBody AmountRequest amountRequest) {
     String username = jwtUtil.extractUsernameFromHeader(request);
     Double amount = amountRequest.getAmount();
     if (amount == null || amount <= 0) {
@@ -143,56 +98,12 @@ public class PortfolioController {
     if (currentBalance >= amount) {
         double newBalance = currentBalance - amount;
         repository.setCashBalance(username, newBalance);
-        return ResponseEntity.ok(newBalance);
+        Map<String, Double> response = new HashMap<>();
+        response.put("balance", newBalance);
+        return ResponseEntity.ok(response);
     } else {
         throw new InsufficientFundsException("Insufficient funds for withdrawal");
     }
-  }
-
-  @PostMapping("/stocks/add")
-  ResponseEntity<UserPortfolio> addStocks(HttpServletRequest request, @RequestBody StockRequest stockRequest) {
-    String username = jwtUtil.extractUsernameFromHeader(request);
-    
-    // Validate request
-    if (stockRequest.getShares() <= 0) {
-        throw new InvalidAmountException("Stock quantity must be positive");
-    }
-    
-    // Add stocks using repository method
-    repository.addStocks(
-        username,
-        stockRequest.getSymbol(),
-        stockRequest.getShares(),
-        stockRequest.getPrice(),
-        stockRequest.getTimestamp()
-    );
-    
-    // Return updated portfolio
-    UserPortfolio updatedPortfolio = repository.findByUsername(username)
-        .orElseThrow(() -> new PortfolioNotFoundException(username));
-    
-    return ResponseEntity.ok(updatedPortfolio);
-  }
-
-  @PostMapping("/stocks/remove")
-  ResponseEntity<UserPortfolio> removeStocks(HttpServletRequest request, @RequestBody StockRemoveRequest stockRequest) {
-    String username = jwtUtil.extractUsernameFromHeader(request);
-
-    if (stockRequest.getShares() <= 0) {
-      throw new InvalidAmountException("Stock quantity must be positive");
-    }
-
-    repository.removeStocks(
-      username,
-      stockRequest.getSymbol(),
-      stockRequest.getShares(),
-      stockRequest.getTimestamp()
-    );
-
-    UserPortfolio updatedPortfolio = repository.findByUsername(username)
-        .orElseThrow(() -> new PortfolioNotFoundException(username));
-    
-    return ResponseEntity.ok(updatedPortfolio);
   }
 
   @PostMapping("/test/setup")
@@ -206,31 +117,31 @@ public class PortfolioController {
             // Set initial cash balance
             repository.setCashBalance(testUsers[i], initialBalances[i]);
             
-            // Create portfolio with some initial stocks
-            UserPortfolio portfolio = new UserPortfolio();
-            portfolio.setUsername(testUsers[i]);
+            // Create portfolio entries for each stock
+            LocalDateTime now = LocalDateTime.now();
             
-            Map<String, Integer> initialStocks = new HashMap<>();
             switch (i) {
-                case 0: // testUser1 gets some tech stocks
-                    initialStocks.put("AAPL", 10);
-                    initialStocks.put("GOOGL", 5);
-                    initialStocks.put("MSFT", 8);
+                case 0: // testUser1 gets some tech stocks with multiple entries
+                    repository.save(new PortfolioRow(testUsers[i], "AAPL", 10, 180.5, now));
+                    repository.save(new PortfolioRow(testUsers[i], "AAPL", 5, 175.0, now.minusDays(1)));
+                    repository.save(new PortfolioRow(testUsers[i], "GOOG", 5, 140.75, now));
+                    repository.save(new PortfolioRow(testUsers[i], "GOOG", 3, 138.50, now.minusDays(2)));
+                    repository.save(new PortfolioRow(testUsers[i], "MSFT", 8, 338.2, now));
                     break;
-                case 1: // testUser2 gets some finance stocks
-                    initialStocks.put("JPM", 15);
-                    initialStocks.put("BAC", 20);
-                    initialStocks.put("AAPL", 3);
+                case 1: // testUser2 gets some finance stocks with multiple entries
+                    repository.save(new PortfolioRow(testUsers[i], "JPM", 15, 147.8, now));
+                    repository.save(new PortfolioRow(testUsers[i], "JPM", 10, 145.2, now.minusDays(3)));
+                    repository.save(new PortfolioRow(testUsers[i], "BAC", 20, 34.5, now));
+                    repository.save(new PortfolioRow(testUsers[i], "AAPL", 3, 180.5, now));
                     break;
-                case 2: // testUser3 gets a mix
-                    initialStocks.put("AAPL", 2);
-                    initialStocks.put("TSLA", 4);
-                    initialStocks.put("AMZN", 1);
+                case 2: // testUser3 gets a mix with multiple entries
+                    repository.save(new PortfolioRow(testUsers[i], "AAPL", 2, 180.5, now));
+                    repository.save(new PortfolioRow(testUsers[i], "AAPL", 3, 182.75, now.minusDays(1)));
+                    repository.save(new PortfolioRow(testUsers[i], "TSLA", 4, 175.3, now));
+                    repository.save(new PortfolioRow(testUsers[i], "TSLA", 2, 170.8, now.minusDays(4)));
+                    repository.save(new PortfolioRow(testUsers[i], "AMZN", 1, 178.2, now));
                     break;
             }
-            
-            portfolio.setStocks(initialStocks);
-            repository.save(portfolio);
         }
 
         String testUser4 = "testUser4";
@@ -243,57 +154,27 @@ public class PortfolioController {
     }
   }
 
-  @DeleteMapping("/test/cleanup")
-  public ResponseEntity<String> cleanupTestCases() {
-    try {
-        String[] testUsers = {"testUser1", "testUser2", "testUser3"};
+  // @PostMapping("/test/cleanup")
+  // public ResponseEntity<String> cleanupTestCases() {
+  //   try {
+  //       String[] testUsers = {"testUser1", "testUser2", "testUser3", "testUser4"};
         
-        for (String username : testUsers) {
-            // Clear portfolio
-            UserPortfolio portfolio = new UserPortfolio();
-            portfolio.setUsername(username);
-            portfolio.setStocks(new HashMap<>());
-            repository.save(portfolio);
+  //       for (String username : testUsers) {
+  //           // Delete all portfolio entries for each test user
+  //           List<Portfolio> userPortfolio = repository.findAllByUsername(username);
+  //           for (Portfolio entry : userPortfolio) {
+  //               repository.delete(entry);
+  //           }
             
-            // Reset balance to 0
-            repository.setCashBalance(username, 0);
-        }
+  //           // Reset cash balance to 0 or remove it entirely
+  //           repository.setCashBalance(username, 0.0);
+  //       }
         
-        return ResponseEntity.ok("Test cases cleaned up successfully");
-    } catch (Exception e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body("Error cleaning up test cases: " + e.getMessage());
-    }
-  }
+  //       return ResponseEntity.ok("Test cases cleaned up successfully");
+  //   } catch (Exception e) {
+  //       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+  //           .body("Error cleaning up test cases: " + e.getMessage());
+  //   }
+  // }
 
-  @GetMapping("/test/verify")
-  public ResponseEntity<Map<String, Object>> verifyTestCases() {
-    Map<String, Object> status = new HashMap<>();
-    String[] testUsers = {"testUser1", "testUser2", "testUser3"};
-    
-    try {
-        for (String username : testUsers) {
-            Map<String, Object> userStatus = new HashMap<>();
-            
-            // Get balance
-            double balance = repository.getCashBalance(username);
-            userStatus.put("balance", balance);
-            
-            // Get portfolio
-            Optional<UserPortfolio> portfolio = repository.findByUsername(username);
-            if (portfolio.isPresent()) {
-                userStatus.put("stocks", portfolio.get().getStocks());
-            } else {
-                userStatus.put("stocks", "No portfolio found");
-            }
-            
-            status.put(username, userStatus);
-        }
-        
-        return ResponseEntity.ok(status);
-    } catch (Exception e) {
-        status.put("error", e.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(status);
-    }
-  }
 }

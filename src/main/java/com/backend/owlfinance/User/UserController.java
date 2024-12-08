@@ -13,10 +13,10 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import com.backend.owlfinance.database.bigtable.BigTableManager;
 import com.backend.owlfinance.database.obj.User;
-
+import java.io.IOException;
 @RestController
 public class UserController {
-//    private BigTableManager bigTableManager;
+    private final BigTableManager bigTableManager;
 
     @Autowired
     private UserRepository userRepository;
@@ -24,6 +24,15 @@ public class UserController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    public UserController() {
+        String projectId = "rice-comp-539-spring-2022";
+        String instanceId = "comp-539-bigtable";
+        try {
+            this.bigTableManager = new BigTableManager(projectId, instanceId);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to initialize BigTableManager", e);
+        }
+    }
 
 //    private String getTokenFromRequest(HttpServletRequest request) {
 //        String authHeader = request.getHeader("Authorization");
