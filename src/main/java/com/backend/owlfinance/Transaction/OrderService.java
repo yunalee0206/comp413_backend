@@ -12,5 +12,7 @@ public interface OrderService {
 
     List<Order> getUserOrders(String username);
 
+    List<Transaction> getUserHistory(String username);
+
     boolean cancelOrder(String username, String orderId);
 }

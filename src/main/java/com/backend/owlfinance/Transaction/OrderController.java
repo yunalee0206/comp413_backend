@@ -42,7 +42,6 @@ public class OrderController {
         }
     }
  
-
     @GetMapping("/match")
     public ResponseEntity<List<Transaction>> getLastMatchedOrders(HttpServletRequest request) {
         String username = jwtUtil.extractUsernameFromHeader(request);
@@ -55,6 +54,13 @@ public class OrderController {
         String username = jwtUtil.extractUsernameFromHeader(request);
         List<Order> orders = orderService.getUserOrders(username);
         return ResponseEntity.ok(orders);
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<List<Transaction>> getUserHistory(HttpServletRequest request) {
+        String username = jwtUtil.extractUsernameFromHeader(request);
+        List<Transaction> transactions = orderService.getUserHistory(username);
+        return ResponseEntity.ok(transactions);
     }
 
     @DeleteMapping("/cancel/{orderId}")
