@@ -151,12 +151,13 @@ public class PortfolioRepository {
         // If remainingShares == 0, we don't create a new record, effectively removing the position
     }
 
-    public int getCashBalance(String username) {
+    public double getCashBalance(String username) {
         return bigTableManager.getUserCashBalance(username);
     }
 
-    public void setCashBalance(String username, double newBalance) {
-        bigTableManager.setUserCashBalance(username, (int)newBalance);
+    //TODO: deprecate use of setCashBalance, we should only be using updateUserCashBalance
+    public void setCashBalance(String username, double balance) {
+        bigTableManager.createUserCashBalance(username, balance);
     }
 
     public List<UserPortfolio> findAll() {

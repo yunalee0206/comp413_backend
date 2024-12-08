@@ -21,7 +21,7 @@ public class BigTableDriver {
     //Timestamp formatter
     private static final DateTimeFormatter TSFORMATTER = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss");
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
 
         // Establish and maintain connection with our Bigtable instance
         String projectId = "rice-comp-539-spring-2022";
@@ -145,6 +145,21 @@ public class BigTableDriver {
             System.out.println(portfolio);
         }
 
+        System.out.println("\nTesting portfolio cash balance methods");
+        System.out.println("\nCreate cash balance row");
+        bt.updateUserCashBalance("username", 50.0);
+
+        System.out.println("\nGet cash balance row");
+        Double cashBalance = bt.getUserCashBalance("username");
+        System.out.println(cashBalance);
+
+        System.out.println("\nCreate cash balance row");
+        bt.updateUserCashBalance("username", 25.2);
+
+        System.out.println("\nGet updated cash balance row");
+        Double updatedCashBalance = bt.getUserCashBalance("username");
+        System.out.println(updatedCashBalance);
+
         bt.deleteAllPortfolioRows();
     }
 
@@ -156,7 +171,7 @@ public class BigTableDriver {
 
         // Create a test user
         System.out.println("\nCreating test user...");
-        bt.createUser(new User("testuser", "password123", "initial_token", 413));
+        bt.createUser(new User("testuser", "password123", "initial_token"));
 
         // Get user
         System.out.println("\nGetting user info:");
@@ -172,12 +187,6 @@ public class BigTableDriver {
         System.out.println("\nGetting user token:");
         String token = bt.getUserToken("testuser");
         System.out.println("Token: " + token);
-
-        // Get and set balance
-        System.out.println("\nTesting balance operations:");
-        System.out.println("Initial balance: $" + bt.getUserCashBalance("testuser"));
-        bt.setUserCashBalance("testuser", 2000);
-        System.out.println("New balance: $" + bt.getUserCashBalance("testuser"));
 
         // Delete user
         System.out.println("\nDeleting user:");

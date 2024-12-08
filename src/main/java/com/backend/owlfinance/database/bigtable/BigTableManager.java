@@ -111,8 +111,7 @@ public class BigTableManager {
         RowMutation mutation = RowMutation.create(userTableID, username)  // Again, username as row key
                 .setCell("user_info", "username", username)
                 .setCell("user_info", "password", user.password())
-                .setCell("user_info", "token", initialToken)
-                .setCell("cash_balance", "cash_balance", Integer.toString(user.cash_balance()));
+                .setCell("user_info", "token", initialToken);
 
         client.mutateRow(mutation);
         System.out.println("Successfully created user: " + username);
@@ -128,9 +127,8 @@ public class BigTableManager {
 
         String password = row.getCells("user_info", "password").get(0).getValue().toStringUtf8();
         String token = row.getCells("user_info", "token").get(0).getValue().toStringUtf8();
-        int cashBalance = Integer.parseInt(row.getCells("cash_balance", "cash_balance").get(0).getValue().toStringUtf8());
 
-        return new User(username, password, token, cashBalance);
+        return new User(username, password, token);
     }
 
     // Authenticate a user with a user/pass combo.
@@ -153,32 +151,6 @@ public class BigTableManager {
             return null;
         }
         return row.getCells("user_info", "token").get(0).getValue().toStringUtf8();
-    }
-
-    // Get cash balance
-    public int getUserCashBalance(String username) {
-        Row row = client.readRow(userTableID, username);
-        if (row == null) {
-            System.out.println("User \"" + username + "\" not found");
-            return -1;
-        }
-        return Integer.parseInt(row.getCells("cash_balance", "cash_balance").get(0).getValue().toStringUtf8());
-    }
-
-    // Set cash balance
-    // I don't think you should directly set the cash balance like this. But in case
-    // we need to produce hacky code... I'd rather be ready.
-    public void setUserCashBalance(String username, int newBalance) {
-        Row row = client.readRow(userTableID, username);
-        if (row == null) {
-            System.out.println("User \"" + username + "\" not found");
-            return;
-        }
-
-        RowMutation mutation = RowMutation.create(userTableID, username)
-                .setCell("cash_balance", "cash_balance", Integer.toString(newBalance));
-        client.mutateRow(mutation);
-        System.out.println("Successfully updated balance for user: " + username);
     }
 
     // Delete user.
@@ -403,6 +375,38 @@ public class BigTableManager {
         });
 
         return portfolioRows;
+    }
+
+    // Get cash balance
+    public double getUserCashBalance(String username) {
+        Row row = client.readRow(portfolioTableID, username);
+        if (row == null) {
+            System.out.println("Cash balance for user \"" + username + "\" not found");
+            return -1;
+        }
+        return Double.parseDouble(row.getCells("user", "cash_balance").get(0).getValue().toStringUtf8());
+    }
+
+    public void createUserCashBalance(String username, double balance) {
+        RowMutation mutation = RowMutation.create(portfolioTableID, username)
+                .setCell("user", "username", username)
+                .setCell("user", "cash_balance", Double.toString(balance));
+        client.mutateRow(mutation);
+        System.out.println("Successfully created cash balance for user: " + username);
+    }
+
+    public void updateUserCashBalance(String username, double balanceDelta) {
+        double currBalance = getUserCashBalance(username);
+        Row row = client.readRow(portfolioTableID, username);
+        if (row == null) {
+            createUserCashBalance(username, balanceDelta);
+            return;
+        }
+
+        RowMutation mutation = RowMutation.create(portfolioTableID, username)
+                .setCell("user", "cash_balance", Double.toString(currBalance + balanceDelta));
+        client.mutateRow(mutation);
+        System.out.println("Successfully updated cash balance for user: " + username);
     }
 
     public void deleteAllPortfolioRows() {
