@@ -471,6 +471,12 @@ public class BigTableManager {
         System.out.println("Successfully updated cash balance for user: " + username + " to " + newBalance);
     }
 
+    public void deletePortfolioRow(String rowKey) {
+        Row row = client.readRow(portfolioTableID, rowKey);
+        if (row == null) return;
+        client.mutateRow(RowMutation.create(portfolioTableID, rowKey).deleteRow());
+    }
+
     public void deleteAllPortfolioRows() {
         Iterator<Row> rows = client.readRows(Query.create(portfolioTableID)).stream().iterator();
         Row row;

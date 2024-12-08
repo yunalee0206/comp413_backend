@@ -127,15 +127,15 @@ public class BigTableDriver {
         System.out.println("\nTesting portfolio methods");
 
         System.out.println("\nCreate portfolio row");
-        String rowKey = bt.createPortfolioRow(new Portfolio("username", "NVDA", 5, 100.00, timestamp()));
+        String rowKey1 = bt.createPortfolioRow(new Portfolio("username", "NVDA", 5, 100.00, timestamp()));
 
         System.out.println("\nGet portfolio row");
-        Portfolio portfolioObject = bt.getPortfolioRow(rowKey);
+        Portfolio portfolioObject = bt.getPortfolioRow(rowKey1);
         System.out.println(portfolioObject);
 
         System.out.println("\nAdding more rows");
-        bt.createPortfolioRow(new Portfolio("username", "NVDA", 10, 150.00, timestamp()));
-        bt.createPortfolioRow(new Portfolio("username", "AAPL", 10, 114.03, timestamp()));
+        String rowKey2 = bt.createPortfolioRow(new Portfolio("username", "NVDA", 10, 150.00, timestamp()));
+        String rowKey3 = bt.createPortfolioRow(new Portfolio("username", "AAPL", 10, 114.03, timestamp()));
 
         System.out.println("\nGet all rows for a user");
         List<Portfolio> userPortfolio = bt.getPortfolioRowsByUser("username");
@@ -172,7 +172,10 @@ public class BigTableDriver {
         Double updatedCashBalance = bt.getUserCashBalance("username");
         System.out.println(updatedCashBalance);
 
-        bt.deleteAllPortfolioRows();
+        bt.deletePortfolioRow(rowKey1);
+        bt.deletePortfolioRow(rowKey2);
+        bt.deletePortfolioRow(rowKey3);
+        bt.deletePortfolioRow("username");
     }
 
     /**
