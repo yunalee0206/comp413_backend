@@ -21,6 +21,14 @@ import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
+// Imports for cell versioning
+import com.google.cloud.bigtable.admin.v2.BigtableTableAdminClient;
+import com.google.cloud.bigtable.admin.v2.BigtableTableAdminSettings;
+import com.google.cloud.bigtable.admin.v2.models.CreateTableRequest;
+import com.google.cloud.bigtable.admin.v2.models.GCRules;
+import com.google.cloud.bigtable.admin.v2.models.ModifyColumnFamiliesRequest;
+
+
 public class BigTableManager {
 
     // Table IDs
@@ -446,16 +454,21 @@ public class BigTableManager {
 
     public void updateUserCashBalance(String username, double balanceDelta) {
         double currBalance = getUserCashBalance(username);
-        Row row = client.readRow(portfolioTableID, username);
-        if (row == null) {
+        double newBalance = currBalance + balanceDelta;
+        String transactionId = Long.toString(System.currentTimeMillis()); // Use current timestamp as ID
+
+        if (currBalance == -1) {
             createUserCashBalance(username, balanceDelta);
             return;
         }
 
         RowMutation mutation = RowMutation.create(portfolioTableID, username)
-                .setCell("user", "cash_balance", Double.toString(currBalance + balanceDelta));
+                .setCell("user", "username", username)
+                .setCell("user", "cash_balance", Double.toString(newBalance))
+                .setCell("user", "last_transaction", transactionId);
+
         client.mutateRow(mutation);
-        System.out.println("Successfully updated cash balance for user: " + username);
+        System.out.println("Successfully updated cash balance for user: " + username + " to " + newBalance);
     }
 
     public void deleteAllPortfolioRows() {
@@ -500,5 +513,117 @@ public class BigTableManager {
                 .setCell("external_stocks", "volume", Integer.toString(newVolume));
         client.mutateRow(volumeMutation);
         System.out.println("Successfully updated volume in row \"" + rowKey + "\" after transaction.");
+    }
+
+    // Cell versioning tweaks live down here!
+
+    public void setupCashBalanceVersioning(String projectId, String instanceId) throws IOException {
+        BigtableTableAdminSettings adminSettings =
+                BigtableTableAdminSettings.newBuilder()
+                        .setProjectId(projectId)
+                        .setInstanceId(instanceId)
+                        .build();
+
+        try (BigtableTableAdminClient adminClient = BigtableTableAdminClient.create(adminSettings)) {
+            // Set the number of versions to keep
+            GCRules.GCRule gcRule = GCRules.GCRULES.maxVersions(1000000);
+
+            // Modify the existing column family to enable versioning
+            ModifyColumnFamiliesRequest modifyRequest = ModifyColumnFamiliesRequest.of(portfolioTableID)
+                    .updateFamily("user", gcRule);
+
+            adminClient.modifyFamilies(modifyRequest);
+            System.out.println("Updated column family to keep version history");
+        }
+    }
+
+//    public List<CashBalanceEntry> getCashBalanceHistory(String username) {
+//        List<CashBalanceEntry> history = new ArrayList<>();
+//
+//        // Create a filter
+//        Filters.Filter filter = Filters.FILTERS.chain()
+//                .filter(Filters.FILTERS.family().exactMatch("user"))
+//                .filter(Filters.FILTERS.qualifier().exactMatch("cash_balance"))
+//                .filter(Filters.FILTERS.limit().cellsPerColumn(100));
+//
+//        // Query with filter
+//        for (Row row : client.readRows(Query.create(portfolioTableID)
+//                .prefix(username)
+//                .filter(filter))) {
+//
+//            row.getCells("user", "cash_balance").forEach(cell -> {
+//                double balance = Double.parseDouble(cell.getValue().toStringUtf8());
+//                long timestamp = cell.getTimestamp();
+//                history.add(new CashBalanceEntry(balance, timestamp));
+//            });
+//        }
+//
+//        return history;
+//    }
+//
+//    public static class CashBalanceEntry {
+//        private final double balance;
+//        private final long timestamp;
+//
+//        public CashBalanceEntry(double balance, long timestamp) {
+//            this.balance = balance;
+//            this.timestamp = timestamp;
+//        }
+//
+//        public double getBalance() { return balance; }
+//        public long getTimestamp() { return timestamp; }
+//
+//        @Override
+//        public String toString() {
+//            return String.format("Balance: $%.2f at %d", balance, timestamp);
+//        }
+//    }
+
+    public void displayCashBalanceHistory(String username) {
+        List<BalanceEntry> history = getBalanceHistory(username);
+        System.out.println("Cash Balance History for " + username + ":");
+        for (BalanceEntry entry : history) {
+            System.out.printf("Balance: $%.2f at %s%n",
+                    entry.getBalance(),
+                    entry.getTimestamp());
+        }
+    }
+
+    public List<BalanceEntry> getBalanceHistory(String username) {
+        List<BalanceEntry> history = new ArrayList<>();
+
+        Filters.Filter filter = Filters.FILTERS.chain()
+                .filter(Filters.FILTERS.family().exactMatch("user"))
+                .filter(Filters.FILTERS.qualifier().exactMatch("cash_balance"))
+                .filter(Filters.FILTERS.limit().cellsPerColumn(100));
+
+        for (Row row : client.readRows(Query.create(portfolioTableID)
+                .prefix(username)
+                .filter(filter))) {
+
+            row.getCells("user", "cash_balance").forEach(cell -> {
+                double balance = Double.parseDouble(cell.getValue().toStringUtf8());
+                String timestamp = Instant.ofEpochMilli(cell.getTimestamp() / 1000)
+                        .toString(); // Note to backend: ISO-8601 format
+                history.add(new BalanceEntry(balance, timestamp));
+            });
+        }
+
+        // Sort by timestamp, string descending. I could change this, I guess
+        history.sort((a, b) -> b.getTimestamp().compareTo(a.getTimestamp()));
+        return history;
+    }
+
+    public static class BalanceEntry {
+        private final double balance;
+        private final String timestamp;
+
+        public BalanceEntry(double balance, String timestamp) {
+            this.balance = balance;
+            this.timestamp = timestamp;
+        }
+
+        public double getBalance() { return balance; }
+        public String getTimestamp() { return timestamp; }
     }
 }

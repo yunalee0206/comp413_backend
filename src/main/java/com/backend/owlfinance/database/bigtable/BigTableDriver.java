@@ -29,6 +29,10 @@ public class BigTableDriver {
 
         BigTableManager bt = new BigTableManager(projectId, instanceId);
 
+        // Make sure versioning is configured
+        bt.setupCashBalanceVersioning(projectId, instanceId);
+
+        testCashBalanceHistory(bt);
         testUserMethods(bt);
         testPortfolioMethods(bt);
 
@@ -245,5 +249,41 @@ public class BigTableDriver {
         System.out.println("\nFinal user count: " + finalUsers.size());
 
         System.out.println("\n=== User Tests Complete ===");
+    }
+
+    public static void testCashBalanceHistory(BigTableManager bt) {
+        String testUser = "balancetest_user";
+        System.out.println("\n=== Testing Cash Balance History ===");
+
+        // Create a series of balance changes
+        System.out.println("\nCreating initial balance:");
+        bt.updateUserCashBalance(testUser, 1000.0);  // Starting amount. Broke boy.
+
+        // Wait a bit between transactions to make timestamps distinct. Only do this in testing!
+        try { Thread.sleep(100); } catch (InterruptedException e) { }
+
+        System.out.println("\nMaking several transactions:");
+        bt.updateUserCashBalance(testUser, -500.0);  // Withdrawal
+        try { Thread.sleep(100); } catch (InterruptedException e) { }
+
+        bt.updateUserCashBalance(testUser, 750.0);   // Deposit
+        try { Thread.sleep(100); } catch (InterruptedException e) { }
+
+        bt.updateUserCashBalance(testUser, -250.0);  // Withdrawal
+
+        // Get and display the history
+        System.out.println("\nRetrieving balance history:");
+        bt.displayCashBalanceHistory(testUser);
+
+        // Get current balance
+        System.out.println("\nFinal balance:");
+        double finalBalance = bt.getUserCashBalance(testUser);
+        System.out.println("Current balance: $" + finalBalance);
+
+        // Clean up idk
+        System.out.println("\nCleaning up test data...");
+        bt.deleteAllPortfolioRows();
+
+        System.out.println("\n=== Cash Balance History Test Complete ===");
     }
 }
