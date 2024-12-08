@@ -171,8 +171,7 @@ class OrderBook {
                 price,
                 LocalDateTime.now().format(formatter)
             );
-            double newBalance = portfolioRepository.getCashBalance(order.getUsername()) - (price * order.getQuantity());
-            portfolioRepository.setCashBalance(order.getUsername(), newBalance);
+            portfolioRepository.setCashBalance(order.getUsername(), -price * order.getQuantity());
         } else if (order.getType().equals("sell")) {
             portfolioRepository.removeStocks(
                 order.getUsername(),
@@ -181,12 +180,11 @@ class OrderBook {
                 LocalDateTime.now().format(formatter)
             );
             double newBalance = portfolioRepository.getCashBalance(order.getUsername()) + (price * order.getQuantity());
-            portfolioRepository.setCashBalance(order.getUsername(), newBalance);
+
+            portfolioRepository.setCashBalance(order.getUsername(), +price * order.getQuantity());
         }
 
         return transaction;
-    
-
     }
 
 
