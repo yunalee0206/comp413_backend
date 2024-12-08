@@ -1,4 +1,4 @@
-package stock_server;
+package com.backend.owlfinance;
 
 class StockNotFoundException extends RuntimeException {
 

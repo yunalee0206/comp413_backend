@@ -1,4 +1,4 @@
-package stock_server;
+package com.backend.owlfinance;
 
 import java.util.Objects;
 import java.util.Date;
@@ -39,7 +39,7 @@ class Stock {
   }
 
   public Date getDate() {
-    return this.price;
+    return this.date;
   }
 
   public void setId(Long id) {

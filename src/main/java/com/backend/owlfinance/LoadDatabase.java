@@ -1,4 +1,4 @@
-package stock_server
+package com.backend.owlfinance;
 
 import java.util.Date;
 
@@ -16,11 +16,11 @@ class LoadDatabase {
   @Bean
   CommandLineRunner initDatabase(StockRepository repository) {
 
-    Date newDate = new Date()
+    Date newDate = new Date();
 
     return args -> {
-      log.info("Preloading " + repository.save(new Stock("AAPL", 10, newDate)));
-      log.info("Preloading " + repository.save(new Stock("MSFT", 8, newDate)));
+      log.info("Preloading " + repository.save(new Stock("AAPL", 10.0, newDate)));
+      log.info("Preloading " + repository.save(new Stock("MSFT", 8.0, newDate)));
     };
   }
 }
