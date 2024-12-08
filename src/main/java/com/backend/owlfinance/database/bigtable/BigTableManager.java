@@ -1,5 +1,6 @@
 package com.backend.owlfinance.database.bigtable;
 
+import com.google.cloud.bigtable.data.v2.models.Filters;
 import com.google.cloud.bigtable.data.v2.BigtableDataClient;
 import com.google.cloud.bigtable.data.v2.BigtableDataSettings;
 import com.google.cloud.bigtable.data.v2.models.Query;
@@ -92,23 +93,17 @@ public class BigTableManager {
         System.out.println("Successfully wrote user \"" + username + "\" to DB.");
     }
      */
-    public static void createUser(User user) {
+    public static void createUser(User user) {  // Remove static
         String username = user.username();
-        // First check if user exists
-        // NOTE: this assumes the username is our row key—this might not be the case?
         Row existingUser = client.readRow(userTableID, username);
         if (existingUser != null) {
             System.out.println("User \"" + username + "\" already exists in table");
             return;
         }
 
-        // Generate initial token for the user
-        // NOTE: this assumes that the user object already created has a token.
-        // can easily generate one if that's what we need, however.
         String initialToken = user.token();
 
-        // Create the user entry - username is both row key and a column value. Hopefully that's not a bad idea.
-        RowMutation mutation = RowMutation.create(userTableID, username)  // Again, username as row key
+        RowMutation mutation = RowMutation.create(userTableID, username)
                 .setCell("user_info", "username", username)
                 .setCell("user_info", "password", user.password())
                 .setCell("user_info", "token", initialToken);
@@ -118,7 +113,7 @@ public class BigTableManager {
     }
 
     // Get complete user
-    public static User getUser(String username) {
+    public static User getUser(String username) {  // Remove static
         Row row = client.readRow(userTableID, username);
         if (row == null) {
             System.out.println("User \"" + username + "\" not found");
@@ -130,6 +125,7 @@ public class BigTableManager {
 
         return new User(username, password, token);
     }
+
 
     // Authenticate a user with a user/pass combo.
     public boolean authenticateUser(String username, String providedPassword) {
@@ -163,6 +159,33 @@ public class BigTableManager {
 
         client.mutateRow(RowMutation.create(userTableID, username).deleteRow());
         System.out.println("Successfully deleted user: " + username);
+    }
+
+    // A getallusers method, for debugging purposes.
+    public List<User> getAllUsers() {
+        List<User> users = new ArrayList<>();
+        Query query = Query.create(userTableID);
+
+        for (Row row : client.readRows(query)) {
+            try {
+                // Check if all required cells exist first
+                if (!row.getCells("user_info", "password").isEmpty() &&
+                        !row.getCells("user_info", "token").isEmpty()) {
+
+                    String username = row.getKey().toStringUtf8();
+                    String password = row.getCells("user_info", "password").get(0).getValue().toStringUtf8();
+                    String token = row.getCells("user_info", "token").get(0).getValue().toStringUtf8();
+
+                    users.add(new User(username, password, token));
+                }
+            } catch (Exception e) {
+                System.out.println("Error processing user row: " + e.getMessage());
+                // Continue processing other rows even if one fails
+                continue;
+            }
+        }
+
+        return users;
     }
 
     /* OLD DEMO CODE—will be thrown out in refactoring soon

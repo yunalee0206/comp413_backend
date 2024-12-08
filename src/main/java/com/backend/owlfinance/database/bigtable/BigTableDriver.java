@@ -167,36 +167,75 @@ public class BigTableDriver {
      * Tests all of the user methods available. Made it it's own method for clarity.
      */
     public static void testUserMethods(BigTableManager bt) {
-        System.out.println("\nTesting user methods:");
+        System.out.println("\n=== Starting User Tests ===");
 
-        // Create a test user
+        // First check if there are any existing users
+        System.out.println("\nChecking existing users before test:");
+        List<User> initialUsers = bt.getAllUsers();
+        System.out.println("Found " + initialUsers.size() + " users in database");
+
+        // Create test user with ID
         System.out.println("\nCreating test user...");
-        bt.createUser(new User("testuser", "password123", "initial_token"));
+        User testUser = new User("testuser", "password123", "initial_token");
+        bt.createUser(testUser);
 
-        // Get user
-        System.out.println("\nGetting user info:");
-        User user = bt.getUser("testuser");
-        System.out.println(user);
+        // Verify user was created correctly by direct lookup
+        System.out.println("\nVerifying user creation by username lookup:");
+        User retrievedUser = bt.getUser("testuser");
+        if (retrievedUser != null) {
+            System.out.println("Retrieved user data:");
+            System.out.println("Username: " + retrievedUser.username());
+            System.out.println("Password: " + retrievedUser.password());
+            System.out.println("Token: " + retrievedUser.token());
 
-        // Test "authentication" (again, this is not secure at all.)
+            // Verify all fields match
+            boolean fieldsMatch =
+                    testUser.username().equals(retrievedUser.username()) &&
+                            testUser.password().equals(retrievedUser.password()) &&
+                            testUser.token().equals(retrievedUser.token());
+
+            System.out.println("All fields match original data: " + fieldsMatch);
+        } else {
+            System.out.println("ERROR: Failed to retrieve created user!");
+        }
+
+
+        // Test authentication that does not work and that you should not use.
         System.out.println("\nTesting authentication:");
         System.out.println("Correct password test: " + bt.authenticateUser("testuser", "password123"));
         System.out.println("Wrong password test: " + bt.authenticateUser("testuser", "wrongpass"));
 
-        // Get token
-        System.out.println("\nGetting user token:");
-        String token = bt.getUserToken("testuser");
-        System.out.println("Token: " + token);
+        // Get all users again to verify the user appears in the list
+        System.out.println("\nVerifying user appears in full user list:");
+        List<User> allUsers = bt.getAllUsers();
+        System.out.println("Total users in database: " + allUsers.size());
+        boolean userFound = false;
+        for (User user : allUsers) {
+            if (user.username().equals("testuser")) {
+                userFound = true;
+                System.out.println("Found test user in full list: " + user);
+                break;
+            }
+        }
+        System.out.println("Test user found in full list: " + userFound);
 
-        // Delete user
-        System.out.println("\nDeleting user:");
+        // Clean up
+        System.out.println("\nCleaning up - deleting test user:");
         bt.deleteUser("testuser");
 
         // Verify deletion
-        System.out.println("\nTrying to get deleted user:");
+        System.out.println("\nVerifying deletion:");
         User deletedUser = bt.getUser("testuser");
         if (deletedUser == null) {
             System.out.println("User successfully deleted");
+        } else {
+            System.out.println("ERROR: User still exists after deletion!");
         }
+
+        // Final user count
+        List<User> finalUsers = bt.getAllUsers();
+        System.out.println("\nFinal user count: " + finalUsers.size());
+
+        System.out.println("\n=== User Tests Complete ===");
     }
 }
