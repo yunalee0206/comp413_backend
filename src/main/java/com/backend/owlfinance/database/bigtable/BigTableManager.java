@@ -377,7 +377,35 @@ public class BigTableManager {
         return portfolioRows;
     }
 
-    // Get cash balance
+    public void sellShares(String username, String stockSymbol, int numShares) throws Exception {
+        List<Portfolio> portfolioRows = getPortfolioRowsByUserAndStock(username, stockSymbol);
+
+        int totalNumShares = 0;
+        for (Portfolio row : portfolioRows) {
+            totalNumShares += row.numShares();
+        }
+        if (totalNumShares < numShares) {
+            throw new Exception("selling more shares than the user owns");
+        }
+
+        for (Portfolio row : portfolioRows) {
+            int numSharesToSell = Math.min(numShares, row.numShares());
+
+            System.out.println(row);
+
+            String timestamp = row.dateTime();
+            String rowKey = username + "#" + stockSymbol + "#" + timestamp;
+            RowMutation mutation = RowMutation.create(portfolioTableID, rowKey)
+                    .setCell("portfolio", "num_shares", Integer.toString(row.numShares() - numSharesToSell));
+            client.mutateRow(mutation);
+
+            numShares -= numSharesToSell;
+            if (numShares == 0) {
+                break;
+            }
+        }
+    }
+
     public double getUserCashBalance(String username) {
         Row row = client.readRow(portfolioTableID, username);
         if (row == null) {
@@ -422,7 +450,7 @@ public class BigTableManager {
         String username = portfolio.username();
         String stockSymbol = portfolio.stockSymbol();
         String timestamp = portfolio.dateTime();
-        String rowKey = username + "#" + stockSymbol + "#" + timestamp + "#" + UUID.randomUUID().toString();
+        String rowKey = username + "#" + stockSymbol + "#" + timestamp;
 
         RowMutation newPortfolioMutation = RowMutation.create(portfolioTableID, rowKey)
                 .setCell("user", "username", username)
