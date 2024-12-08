@@ -29,6 +29,10 @@ public class BigTableDriver {
 
         BigTableManager bt = new BigTableManager(projectId, instanceId);
 
+        // Make sure versioning is configured
+        bt.setupCashBalanceVersioning(projectId, instanceId);
+
+        testCashBalanceHistory(bt);
         testUserMethods(bt);
         testPortfolioMethods(bt);
 
@@ -123,15 +127,15 @@ public class BigTableDriver {
         System.out.println("\nTesting portfolio methods");
 
         System.out.println("\nCreate portfolio row");
-        String rowKey = bt.createPortfolioRow(new Portfolio("username", "NVDA", 5, 100.00, timestamp()));
+        String rowKey1 = bt.createPortfolioRow(new Portfolio("username", "NVDA", 5, 100.00, timestamp()));
 
         System.out.println("\nGet portfolio row");
-        Portfolio portfolioObject = bt.getPortfolioRow(rowKey);
+        Portfolio portfolioObject = bt.getPortfolioRow(rowKey1);
         System.out.println(portfolioObject);
 
         System.out.println("\nAdding more rows");
-        bt.createPortfolioRow(new Portfolio("username", "NVDA", 10, 150.00, timestamp()));
-        bt.createPortfolioRow(new Portfolio("username", "AAPL", 10, 114.03, timestamp()));
+        String rowKey2 = bt.createPortfolioRow(new Portfolio("username", "NVDA", 10, 150.00, timestamp()));
+        String rowKey3 = bt.createPortfolioRow(new Portfolio("username", "AAPL", 10, 114.03, timestamp()));
 
         System.out.println("\nGet all rows for a user");
         List<Portfolio> userPortfolio = bt.getPortfolioRowsByUser("username");
@@ -168,7 +172,10 @@ public class BigTableDriver {
         Double updatedCashBalance = bt.getUserCashBalance("username");
         System.out.println(updatedCashBalance);
 
-        bt.deleteAllPortfolioRows();
+        bt.deletePortfolioRow(rowKey1);
+        bt.deletePortfolioRow(rowKey2);
+        bt.deletePortfolioRow(rowKey3);
+        bt.deletePortfolioRow("username");
     }
 
     /**
@@ -245,5 +252,41 @@ public class BigTableDriver {
         System.out.println("\nFinal user count: " + finalUsers.size());
 
         System.out.println("\n=== User Tests Complete ===");
+    }
+
+    public static void testCashBalanceHistory(BigTableManager bt) {
+        String testUser = "balancetest_user";
+        System.out.println("\n=== Testing Cash Balance History ===");
+
+        // Create a series of balance changes
+        System.out.println("\nCreating initial balance:");
+        bt.updateUserCashBalance(testUser, 1000.0);  // Starting amount. Broke boy.
+
+        // Wait a bit between transactions to make timestamps distinct. Only do this in testing!
+        try { Thread.sleep(100); } catch (InterruptedException e) { }
+
+        System.out.println("\nMaking several transactions:");
+        bt.updateUserCashBalance(testUser, -500.0);  // Withdrawal
+        try { Thread.sleep(100); } catch (InterruptedException e) { }
+
+        bt.updateUserCashBalance(testUser, 750.0);   // Deposit
+        try { Thread.sleep(100); } catch (InterruptedException e) { }
+
+        bt.updateUserCashBalance(testUser, -250.0);  // Withdrawal
+
+        // Get and display the history
+        System.out.println("\nRetrieving balance history:");
+        bt.displayCashBalanceHistory(testUser);
+
+        // Get current balance
+        System.out.println("\nFinal balance:");
+        double finalBalance = bt.getUserCashBalance(testUser);
+        System.out.println("Current balance: $" + finalBalance);
+
+        // Clean up idk
+        System.out.println("\nCleaning up test data...");
+        bt.deleteAllPortfolioRows();
+
+        System.out.println("\n=== Cash Balance History Test Complete ===");
     }
 }
