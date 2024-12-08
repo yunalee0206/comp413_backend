@@ -19,7 +19,7 @@ import java.util.UUID;
 public class BigTableDriver {
 
     //Timestamp formatter
-    private static final DateTimeFormatter TSFORMATTER = DateTimeFormatter.ofPattern("uuuu-MM-dd HH:mm:ss");
+    private static final DateTimeFormatter TSFORMATTER = DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSX");
 
     public static void main(String[] args) throws Exception {
 
@@ -119,7 +119,7 @@ public class BigTableDriver {
         return ZonedDateTime.now(ZoneOffset.UTC).format(TSFORMATTER);
     }
 
-    public static void testPortfolioMethods(BigTableManager bt) {
+    public static void testPortfolioMethods(BigTableManager bt) throws Exception {
         System.out.println("\nTesting portfolio methods");
 
         System.out.println("\nCreate portfolio row");
@@ -142,6 +142,14 @@ public class BigTableDriver {
         System.out.println("\nGet all rows for a user filtered by a specific stock");
         List<Portfolio> userPortfolioNVDA = bt.getPortfolioRowsByUserAndStock("username", "NVDA");
         for (Portfolio portfolio : userPortfolioNVDA) {
+            System.out.println(portfolio);
+        }
+
+        System.out.println("\nTest selling shares");
+        bt.sellShares("username", "NVDA", 6);
+        System.out.println("\nGet updated NVDA rows");
+        List<Portfolio> userPortfolioNVDAAfterCell = bt.getPortfolioRowsByUserAndStock("username", "NVDA");
+        for (Portfolio portfolio : userPortfolioNVDAAfterCell) {
             System.out.println(portfolio);
         }
 
