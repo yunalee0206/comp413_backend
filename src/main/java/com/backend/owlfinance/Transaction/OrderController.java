@@ -57,6 +57,13 @@ public class OrderController {
         return ResponseEntity.ok(orders);
     }
 
+    @GetMapping("/history")
+    public ResponseEntity<List<Transaction>> getUserHistory(HttpServletRequest request) {
+        String username = jwtUtil.extractUsernameFromHeader(request);
+        List<Transaction> transactions = orderService.getUserHistory(username);
+        return ResponseEntity.ok(transactions);
+    }
+
     @DeleteMapping("/cancel/{orderId}")
     public ResponseEntity<Boolean> cancelOrder(HttpServletRequest request, @PathVariable String orderId) {
         String username = jwtUtil.extractUsernameFromHeader(request);
