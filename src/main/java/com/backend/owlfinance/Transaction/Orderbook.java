@@ -152,7 +152,6 @@ class OrderBook {
      */
     private Transaction execute(Order order, double price) {
         System.out.println("Executing Order: " + order.toString());
-        String uuid = UUID.randomUUID().toString();
         Transaction transaction = new Transaction(
             order.getUsername(),
             order.getType(),
@@ -179,8 +178,6 @@ class OrderBook {
                 order.getQuantity(),
                 LocalDateTime.now().format(formatter)
             );
-            double newBalance = portfolioRepository.getCashBalance(order.getUsername()) + (price * order.getQuantity());
-
             portfolioRepository.setCashBalance(order.getUsername(), +price * order.getQuantity());
         }
 
