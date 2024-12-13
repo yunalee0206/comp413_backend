@@ -219,7 +219,7 @@ public class BigTableManager {
     /* Transactions Table Methods */
     public String createTransaction(Transaction transaction) {
         String username = transaction.username();
-        String rowKey = username + "#" + transaction.uuid();
+        String rowKey = username + "#" + transaction.timestamp();
 
         RowMutation newTransaction = RowMutation.create(transactionsTableID, rowKey)
             .setCell("user_info", "username", username)
@@ -240,9 +240,10 @@ public class BigTableManager {
         String stockSymbol =  row.getCells("transaction_info", "stock_symbol").get(0).getValue().toStringUtf8();
         int numShares = Integer.parseInt(row.getCells("transaction_info", "num_shares").get(0).getValue().toStringUtf8());
         double sharePrice = Double.parseDouble(row.getCells("transaction_info", "share_price").get(0).getValue().toStringUtf8());
+        String timestamp = row.getCells("placed_at", "transaction_info").get(0).getValue().toStringUtf8();
         String uuid = row.getCells("uuid", "uuid").get(0).getValue().toStringUtf8();
 
-        return new Transaction(username, transactionType, stockSymbol, numShares, sharePrice, uuid);
+        return new Transaction(username, transactionType, stockSymbol, numShares, sharePrice, timestamp, uuid);
     }
 
     public Transaction getTransaction(String rowKey) {

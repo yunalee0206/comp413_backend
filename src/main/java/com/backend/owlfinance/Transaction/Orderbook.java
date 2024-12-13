@@ -1,5 +1,6 @@
 package com.backend.owlfinance.Transaction;
 
+import java.text.SimpleDateFormat;
 import java.util.PriorityQueue;
 import java.util.Comparator;
 import java.util.List;
@@ -152,12 +153,15 @@ class OrderBook {
      */
     private Transaction execute(Order order, double price) {
         System.out.println("Executing Order: " + order.toString());
+        SimpleDateFormat newFormatter = new SimpleDateFormat("yyyy-MM-ddTHH:mm:ss.SSS");
+        String formattedDate = newFormatter.format(order.getTimestamp());
         Transaction transaction = new Transaction(
             order.getUsername(),
             order.getType(),
             order.getSymbol(),
             order.getQuantity(),
             price,
+            formattedDate,
             order.getId()
         );
 
